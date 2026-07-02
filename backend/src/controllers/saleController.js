@@ -37,25 +37,40 @@ const create = async (req, res) => {
     const invoiceNo = `${company?.invoicePrefix || 'INV'}-${String(company?.invoiceCounter || 1).padStart(6, '0')}`;
     if (company) await company.increment('invoiceCounter');
 
-    let subtotal = 0, cgstAmount = 0, sgstAmount = 0, taxAmount = 0;
+    let subtotal = 0, cgstAmount = 0, sgstAmount = 0, igstAmount = 0, taxAmount = 0;
+    const discountAmount = Number(invoiceData.discountAmount || 0);
 
     const processedItems = items.map((item) => {
       const taxable = (item.rate * item.qty) * (1 - (item.discount || 0) / 100);
       const cgst = taxable * ((item.cgst || 0) / 100);
       const sgst = taxable * ((item.sgst || 0) / 100);
-      const gstAmount = cgst + sgst;
+      const igst = taxable * ((item.igst || 0) / 100);
+      const gstAmount = cgst + sgst + igst;
       const amount = taxable + gstAmount;
       subtotal += taxable;
       cgstAmount += cgst;
       sgstAmount += sgst;
+      igstAmount += igst;
       taxAmount += gstAmount;
       return { ...item, gstAmount, amount };
     });
 
-    const grandTotal = subtotal + taxAmount + (invoiceData.roundOff || 0);
+    // Recalculate tax after overall discount (proportionally reduce)
+    const discountRatio = subtotal > 0 ? (subtotal - discountAmount) / subtotal : 1;
+    cgstAmount = cgstAmount * discountRatio;
+    sgstAmount = sgstAmount * discountRatio;
+    igstAmount = igstAmount * discountRatio;
+    taxAmount = cgstAmount + sgstAmount + igstAmount;
+
+    const grandTotal = (subtotal - discountAmount) + taxAmount + (invoiceData.roundOff || 0);
 
     const invoice = await SaleInvoice.create({
-      ...invoiceData, invoiceNo, subtotal, cgstAmount, sgstAmount, taxAmount, grandTotal, createdBy: req.user?.id,
+      ...invoiceData, invoiceNo, subtotal, discountAmount, cgstAmount, sgstAmount, igstAmount, taxAmount, grandTotal,
+      paidAmount: invoiceData.paidAmount ?? grandTotal,
+      chequeNo: invoiceData.chequeNo || null,
+      bankName: invoiceData.bankName || null,
+      transactionRef: invoiceData.transactionRef || null,
+      createdBy: req.user?.id,
     }, { transaction: t });
 
     for (const item of processedItems) {
@@ -83,10 +98,33 @@ const create = async (req, res) => {
 };
 
 const cancel = async (req, res) => {
-  const record = await SaleInvoice.findOne({ where: { id: req.params.id, isDeleted: false } });
-  if (!record) return notFound(res);
-  await record.update({ status: 'cancelled', updatedBy: req.user?.id });
-  return success(res, null, 'Invoice cancelled');
+  const t = await sequelize.transaction();
+  try {
+    const record = await SaleInvoice.findOne({
+      where: { id: req.params.id, isDeleted: false },
+      include: [{ model: SaleItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!record || record.status === 'cancelled') {
+      await t.rollback();
+      return notFound(res);
+    }
+
+    await record.update({ status: 'cancelled', updatedBy: req.user?.id }, { transaction: t });
+
+    for (const item of record.items) {
+      if (item.batchId) {
+        const batch = await Batch.findByPk(item.batchId, { transaction: t });
+        if (batch) await batch.increment('qty', { by: item.qty + (item.free || 0), transaction: t });
+      }
+    }
+
+    await t.commit();
+    return success(res, null, 'Invoice cancelled and stock restored');
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
 };
 
 module.exports = { getAll, getById, create, cancel };

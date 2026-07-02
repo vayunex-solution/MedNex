@@ -13,16 +13,17 @@ import ProtectedRoute from './routes/ProtectedRoute';
 
 // Pages
 import Login from './pages/auth/Login';
+import LandingPage from './pages/landing/LandingPage';
 import Dashboard from './pages/dashboard/Dashboard';
 import Customers from './pages/masters/Customers';
 import Suppliers from './pages/masters/Suppliers';
 import Medicines from './pages/masters/Medicines';
 import Users from './pages/masters/Users';
-import { Doctors, MedicineCategories, MedicineCompanies, HsnCodes, GstSlabs, Units, Racks } from './pages/masters/SimpleMasters';
+import { Doctors, MedicineCategories, MedicineCompanies, HsnCodes, GstSlabs, Units, Racks, States, Cities } from './pages/masters/SimpleMasters';
 import PurchaseEntry from './pages/purchase/PurchaseEntry';
 import SalesBilling from './pages/sales/SalesBilling';
 import { CurrentStock, ExpiryStock, BatchWiseStock } from './pages/stock/StockPages';
-import { SalesReport, GstReport, ProfitReport } from './pages/reports/Reports';
+import { SalesReport, PurchaseReport, GstReport, ProfitReport, CustomerLedger, SupplierLedger, ItemLedger } from './pages/reports/Reports';
 import Settings from './pages/settings/Settings';
 
 const queryClient = new QueryClient({
@@ -33,15 +34,21 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
   const { mode } = useAppSelector((s) => s.theme);
+  const { isAuthenticated } = useAppSelector((s) => s.auth);
   return (
     <ThemeProvider theme={mode === 'dark' ? darkTheme : lightTheme}>
       <CssBaseline />
       <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} autoHideDuration={3000}>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            {/* Public — Landing page; redirect to dashboard if already logged in */}
+            <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+
+            {/* Auth — Login page; redirect to dashboard if already logged in */}
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+
+            {/* Protected App Routes */}
             <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               {/* Masters */}
               <Route path="masters/customers" element={<Customers />} />
@@ -54,6 +61,8 @@ const AppContent: React.FC = () => {
               <Route path="masters/gst" element={<GstSlabs />} />
               <Route path="masters/units" element={<Units />} />
               <Route path="masters/racks" element={<Racks />} />
+              <Route path="masters/states" element={<States />} />
+              <Route path="masters/cities" element={<Cities />} />
               <Route path="masters/users" element={<ProtectedRoute roles={['super_admin', 'admin']}><Users /></ProtectedRoute>} />
               {/* Transactions */}
               <Route path="purchase" element={<PurchaseEntry />} />
@@ -65,12 +74,18 @@ const AppContent: React.FC = () => {
               <Route path="stock/near-expiry" element={<ExpiryStock type="near-expiry" />} />
               {/* Reports */}
               <Route path="reports/sales" element={<SalesReport />} />
+              <Route path="reports/purchase" element={<PurchaseReport />} />
               <Route path="reports/gst" element={<GstReport />} />
               <Route path="reports/profit" element={<ProfitReport />} />
+              <Route path="reports/customer-ledger" element={<CustomerLedger />} />
+              <Route path="reports/supplier-ledger" element={<SupplierLedger />} />
+              <Route path="reports/item-ledger" element={<ItemLedger />} />
               {/* Settings */}
               <Route path="settings" element={<Settings />} />
             </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />} />
           </Routes>
         </BrowserRouter>
       </SnackbarProvider>

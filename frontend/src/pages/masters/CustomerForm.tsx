@@ -2,14 +2,16 @@ import React from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Grid, TextField, CircularProgress, IconButton, Typography,
+  FormControl, InputLabel, Select, MenuItem, FormHelperText, Autocomplete, Box,
+  InputAdornment
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import * as yup from 'yup';
-import { customerService } from '../../services';
+import { customerService, stateService, cityService } from '../../services';
 import type { Customer } from '../../types';
 
 const schema = yup.object({
@@ -44,6 +46,16 @@ const CustomerForm: React.FC<Props> = ({ open, onClose, editData }) => {
     reset(customer || { name: '', phone: '', mobile: '', email: '', gstin: '', address: '', city: '', state: '', pincode: '', openingBalance: 0, creditLimit: 0 });
   }, [customer, reset, open]);
 
+  const { data: statesData } = useQuery({ queryKey: ['states'], queryFn: () => stateService.list() });
+  const { data: citiesData } = useQuery({ queryKey: ['cities'], queryFn: () => cityService.list() });
+
+  const states = (statesData?.data?.data as { id: number; name: string }[]) || [];
+  const allCities = (citiesData?.data?.data as { id: number; name: string; stateId: number }[]) || [];
+
+  const selectedState = useWatch({ control, name: 'state' });
+  const stateObj = states.find(s => s.name === selectedState);
+  const cities = stateObj ? allCities.filter(c => c.stateId === stateObj.id) : allCities;
+
   const mutation = useMutation({
     mutationFn: (data: FormData) => customer ? customerService.update(customer.id, data) : customerService.create(data),
     onSuccess: () => {
@@ -60,8 +72,26 @@ const CustomerForm: React.FC<Props> = ({ open, onClose, editData }) => {
     )} />
   );
 
+  const selField = (name: keyof FormData, label: string, options: { name: string }[]) => (
+    <Controller name={name} control={control} render={({ field: f }) => (
+      <Box sx={{ width: '100%', display: 'flex', minWidth: 200 }}>
+        <Autocomplete
+          fullWidth
+          sx={{ width: '100%', flexGrow: 1 }}
+          options={options}
+          getOptionLabel={(option) => option.name}
+          value={options.find(o => o.name === f.value) || null}
+          onChange={(_, newValue) => f.onChange(newValue ? newValue.name : '')}
+          renderInput={(params) => (
+            <TextField {...params} fullWidth label={label} error={!!errors[name]} helperText={errors[name]?.message as string} />
+          )}
+        />
+      </Box>
+    )} />
+  );
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth slotProps={{ paper: { sx: { borderRadius: 3 } } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
         <Typography variant="h6" fontWeight={700}>{customer ? 'Edit Customer' : 'Add Customer'}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
@@ -74,11 +104,11 @@ const CustomerForm: React.FC<Props> = ({ open, onClose, editData }) => {
           <Grid item xs={12} sm={6}>{field('email', 'Email')}</Grid>
           <Grid item xs={12} sm={6}>{field('gstin', 'GSTIN')}</Grid>
           <Grid item xs={12}>{field('address', 'Address', { multiline: true, rows: 2 })}</Grid>
-          <Grid item xs={12} sm={4}>{field('city', 'City')}</Grid>
-          <Grid item xs={12} sm={4}>{field('state', 'State')}</Grid>
+          <Grid item xs={12} sm={4}>{selField('state', 'State', states)}</Grid>
+          <Grid item xs={12} sm={4}>{selField('city', 'City', cities)}</Grid>
           <Grid item xs={12} sm={4}>{field('pincode', 'PIN Code')}</Grid>
-          <Grid item xs={12} sm={6}>{field('openingBalance', 'Opening Balance', { type: 'number', InputProps: { startAdornment: '₹' } })}</Grid>
-          <Grid item xs={12} sm={6}>{field('creditLimit', 'Credit Limit', { type: 'number', InputProps: { startAdornment: '₹' } })}</Grid>
+          <Grid item xs={12} sm={6}>{field('openingBalance', 'Opening Balance', { type: 'number', slotProps: { input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> } } })}</Grid>
+          <Grid item xs={12} sm={6}>{field('creditLimit', 'Credit Limit', { type: 'number', slotProps: { input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> } } })}</Grid>
         </Grid>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>

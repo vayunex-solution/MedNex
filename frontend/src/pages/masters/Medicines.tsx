@@ -72,27 +72,41 @@ const MedicineForm: React.FC<{ open: boolean; onClose: () => void; editData?: un
   };
 
   const f = (name: string, label: string, props: object = {}) => (
-    <TextField label={label} value={form[name] || ''} onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))} fullWidth size="small" {...props} />
+    <Box sx={{ width: '100%', textAlign: 'left' }}>
+      <Typography variant="body2" fontWeight={600} mb={0.5} color="text.secondary">{label}</Typography>
+      <TextField value={form[name] || ''} onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))} fullWidth size="small" placeholder={label} {...props} />
+    </Box>
   );
-  const sel = (name: string, label: string, options: { id: number; name: string }[]) => (
-    <FormControl size="small" fullWidth>
-      <InputLabel>{label}</InputLabel>
-      <Select value={form[name] || ''} onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))} label={label}>
-        <MenuItem value=""><em>None</em></MenuItem>
-        {options.map((o) => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
-      </Select>
-    </FormControl>
+  const sel = (name: string, label: string, options: { id: number; name: string }[], onChangeOverride?: (val: unknown) => void) => (
+    <Box sx={{ width: '100%', textAlign: 'left' }}>
+      <Typography variant="body2" fontWeight={600} mb={0.5} color="text.secondary">{label}</Typography>
+      <FormControl size="small" fullWidth>
+        <Select value={form[name] || ''} onChange={(e) => {
+          if (onChangeOverride) {
+            onChangeOverride(e.target.value);
+          } else {
+            setForm((p) => ({ ...p, [name]: e.target.value }));
+          }
+        }} displayEmpty>
+          <MenuItem value=""><em>Select {label}</em></MenuItem>
+          {options.map((o) => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
+        </Select>
+      </FormControl>
+    </Box>
   );
 
   const categories = (catData?.data?.data as { id: number; name: string }[] || []);
   const companies = (compData?.data?.data as { id: number; name: string }[] || []);
-  const hsns = (hsnData?.data?.data as { id: number; name: string; hsnCode: string }[] || []).map((h) => ({ id: h.id, name: `${h.hsnCode}` }));
-  const gsts = (gstData?.data?.data as { id: number; name: string; slab: string }[] || []).map((g) => ({ id: g.id, name: g.slab }));
+  const rawHsns = (hsnData?.data?.data as { id: number; hsnCode: string; gstRate: number | string }[] || []);
+  const rawGsts = (gstData?.data?.data as { id: number; slab: string; cgst: number | string; sgst: number | string }[] || []);
+  
+  const hsns = rawHsns.map((h) => ({ id: h.id, name: `${h.hsnCode}` }));
+  const gsts = rawGsts.map((g) => ({ id: g.id, name: g.slab }));
   const units = (unitData?.data?.data as { id: number; name: string }[] || []);
   const racks = (rackData?.data?.data as { id: number; name: string }[] || []);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth slotProps={{ paper: { sx: { borderRadius: 3 } } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
         <Typography variant="h6" fontWeight={700}>{medicine ? 'Edit Medicine' : 'Add Medicine'}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
@@ -100,35 +114,48 @@ const MedicineForm: React.FC<{ open: boolean; onClose: () => void; editData?: un
       <DialogContent dividers>
         <Grid container spacing={2} sx={{ pt: 1 }}>
           {/* Image */}
-          <Grid item xs={12} sm={2}>
+          <Grid item xs={12} sm={3} md={2}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-              <Avatar src={imagePreview} variant="rounded" sx={{ width: 100, height: 100, border: '2px dashed #ccc' }} />
+              <Avatar src={imagePreview} variant="rounded" sx={{ width: 120, height: 120, border: '2px dashed #ccc' }} />
               <Button component="label" size="small" startIcon={<Upload />} variant="outlined">
                 Upload
                 <input type="file" hidden accept="image/*" onChange={handleImageChange} />
               </Button>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={10}>
+          <Grid item xs={12} sm={9} md={10}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>{f('name', 'Medicine Name *')}</Grid>
               <Grid item xs={12} sm={6}>{f('genericName', 'Generic Name')}</Grid>
+              
               <Grid item xs={12} sm={4}>{sel('companyId', 'Company', companies)}</Grid>
               <Grid item xs={12} sm={4}>{sel('categoryId', 'Category', categories)}</Grid>
               <Grid item xs={12} sm={4}>{f('schedule', 'Schedule (H/H1/X)')}</Grid>
+              
+              <Grid item xs={12} sm={4}>{sel('hsnId', 'HSN Code', hsns, (val) => {
+                const selectedHsn = rawHsns.find(h => h.id === val);
+                let newGstSlabId = form.gstSlabId;
+                if (selectedHsn) {
+                  const targetRate = Number(selectedHsn.gstRate);
+                  const matchingGst = rawGsts.find(g => (Number(g.cgst) + Number(g.sgst)) === targetRate || Number(g.cgst) === targetRate /* fallback for single rate */);
+                  if (matchingGst) newGstSlabId = matchingGst.id;
+                }
+                setForm(p => ({ ...p, hsnId: val as number, gstSlabId: newGstSlabId }));
+              })}</Grid>
+              <Grid item xs={12} sm={4}>{sel('gstSlabId', 'GST Slab', gsts)}</Grid>
+              <Grid item xs={12} sm={4}>{f('barcode', 'Barcode')}</Grid>
+              
+              <Grid item xs={12} sm={3}>{sel('unitId', 'Unit', units)}</Grid>
+              <Grid item xs={12} sm={3}>{sel('rackId', 'Rack', racks)}</Grid>
+              <Grid item xs={12} sm={3}>{f('minStock', 'Min Stock', { type: 'number' })}</Grid>
+              <Grid item xs={12} sm={3}>{f('maxStock', 'Max Stock', { type: 'number' })}</Grid>
+              
+              <Grid item xs={12} sm={3}>{f('reorderLevel', 'Reorder Level', { type: 'number' })}</Grid>
+              <Grid item xs={12} sm={3}>{f('mrp', 'MRP', { type: 'number' })}</Grid>
+              <Grid item xs={12} sm={3}>{f('purchaseRate', 'Purchase Rate', { type: 'number' })}</Grid>
+              <Grid item xs={12} sm={3}>{f('saleRate', 'Sale Rate', { type: 'number' })}</Grid>
             </Grid>
           </Grid>
-          <Grid item xs={12} sm={3}>{sel('hsnId', 'HSN Code', hsns)}</Grid>
-          <Grid item xs={12} sm={3}>{sel('gstSlabId', 'GST Slab', gsts)}</Grid>
-          <Grid item xs={12} sm={3}>{sel('unitId', 'Unit', units)}</Grid>
-          <Grid item xs={12} sm={3}>{sel('rackId', 'Rack', racks)}</Grid>
-          <Grid item xs={12} sm={4}>{f('barcode', 'Barcode')}</Grid>
-          <Grid item xs={12} sm={4}>{f('minStock', 'Min Stock', { type: 'number' })}</Grid>
-          <Grid item xs={12} sm={4}>{f('maxStock', 'Max Stock', { type: 'number' })}</Grid>
-          <Grid item xs={12} sm={4}>{f('reorderLevel', 'Reorder Level', { type: 'number' })}</Grid>
-          <Grid item xs={12} sm={4}>{f('mrp', 'MRP', { type: 'number' })}</Grid>
-          <Grid item xs={12} sm={4}>{f('purchaseRate', 'Purchase Rate', { type: 'number' })}</Grid>
-          <Grid item xs={12} sm={4}>{f('saleRate', 'Sale Rate', { type: 'number' })}</Grid>
         </Grid>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>

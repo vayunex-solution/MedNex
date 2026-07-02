@@ -3,7 +3,7 @@ import React from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Grid, TextField, CircularProgress, IconButton, Typography,
-  Switch, FormControlLabel,
+  Switch, FormControlLabel, Autocomplete, Box
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
@@ -17,7 +17,7 @@ interface SimpleFormProps {
   title: string;
   queryKey: string;
   service: { create: (d: unknown) => Promise<unknown>; update: (id: number, d: unknown) => Promise<unknown> };
-  fields: Array<{ name: string; label: string; required?: boolean; multiline?: boolean; type?: string }>;
+  fields: Array<{ name: string; label: string; required?: boolean; multiline?: boolean; type?: string; options?: { id: number; name: string }[] }>;
 }
 
 const SimpleForm: React.FC<SimpleFormProps> = ({ open, onClose, editData, title, queryKey, service, fields }) => {
@@ -36,7 +36,7 @@ const SimpleForm: React.FC<SimpleFormProps> = ({ open, onClose, editData, title,
   });
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 3 } } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
         <Typography variant="h6" fontWeight={700}>{record ? `Edit ${title}` : `Add ${title}`}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
@@ -44,10 +44,26 @@ const SimpleForm: React.FC<SimpleFormProps> = ({ open, onClose, editData, title,
       <DialogContent dividers>
         <Grid container spacing={2} sx={{ pt: 1 }}>
           {fields.map((f) => (
-            <Grid item xs={12} sm={f.multiline ? 12 : 6} key={f.name}>
+            <Grid item xs={12} sm={f.multiline ? 12 : 6} key={f.name} sx={{ flexGrow: 1, minWidth: '45%' }}>
               <Controller name={f.name} control={control}
                 render={({ field }) => (
-                  <TextField {...field} label={f.required ? `${f.label} *` : f.label} fullWidth type={f.type || 'text'} multiline={f.multiline} rows={f.multiline ? 2 : undefined} value={field.value ?? ''} />
+                  f.options ? (
+                    <Box sx={{ width: '100%', display: 'flex' }}>
+                      <Autocomplete
+                        fullWidth
+                        sx={{ width: '100%', flexGrow: 1 }}
+                        options={f.options}
+                        getOptionLabel={(option) => option.name}
+                        value={f.options.find(o => o.id === field.value) || null}
+                        onChange={(_, newValue) => field.onChange(newValue ? newValue.id : '')}
+                        renderInput={(params) => (
+                          <TextField {...params} fullWidth label={f.required ? `${f.label} *` : f.label} error={!!field.value && field.value === '' && f.required} />
+                        )}
+                      />
+                    </Box>
+                  ) : (
+                    <TextField {...field} label={f.required ? `${f.label} *` : f.label} fullWidth type={f.type || 'text'} multiline={f.multiline} rows={f.multiline ? 2 : undefined} value={field.value ?? ''} />
+                  )
                 )}
               />
             </Grid>

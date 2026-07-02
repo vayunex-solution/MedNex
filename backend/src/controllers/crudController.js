@@ -65,7 +65,12 @@ const createCrudController = (Model, options = {}) => {
   };
 
   const listAll = async (req, res) => {
-    const rows = await Model.findAll({ where: { isDeleted: false, isActive: true }, include, attributes, order: [['name', 'ASC']] });
+    let orderField = 'id';
+    if (Model.rawAttributes.name) orderField = 'name';
+    else if (Model.rawAttributes.hsnCode) orderField = 'hsnCode';
+    else if (Model.rawAttributes.slab) orderField = 'slab';
+    
+    const rows = await Model.findAll({ where: { isDeleted: false, isActive: true }, include, attributes, order: [[orderField, 'ASC']] });
     return success(res, rows);
   };
 

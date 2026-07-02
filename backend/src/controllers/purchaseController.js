@@ -71,10 +71,36 @@ const create = async (req, res) => {
 };
 
 const remove = async (req, res) => {
-  const record = await PurchaseInvoice.findOne({ where: { id: req.params.id, isDeleted: false } });
-  if (!record) return notFound(res);
-  await record.update({ isDeleted: true, status: 'cancelled', updatedBy: req.user?.id });
-  return success(res, null, 'Purchase cancelled successfully');
+  const t = await sequelize.transaction();
+  try {
+    const record = await PurchaseInvoice.findOne({
+      where: { id: req.params.id, isDeleted: false },
+      include: [{ model: PurchaseItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!record || record.status === 'cancelled') {
+      await t.rollback();
+      return notFound(res);
+    }
+
+    await record.update({ isDeleted: true, status: 'cancelled', updatedBy: req.user?.id }, { transaction: t });
+
+    for (const item of record.items) {
+      const batch = await Batch.findOne({
+        where: { medicineId: item.medicineId, batchNo: item.batchNo },
+        transaction: t,
+      });
+      if (batch) {
+        await batch.decrement('qty', { by: item.qty + (item.freeQty || 0), transaction: t });
+      }
+    }
+
+    await t.commit();
+    return success(res, null, 'Purchase cancelled successfully and stock deducted');
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
 };
 
 module.exports = { getAll, getById, create, remove };

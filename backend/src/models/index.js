@@ -80,6 +80,27 @@ const Unit = sequelize.define('Unit', {
   updatedBy: { type: DataTypes.INTEGER },
   isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
 }, { tableName: 'units' });
+// ─── State ────────────────────────────────────────────────────────────────────
+const State = sequelize.define('State', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+  createdBy: { type: DataTypes.INTEGER },
+  updatedBy: { type: DataTypes.INTEGER },
+  isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
+}, { tableName: 'states' });
+
+// ─── City ─────────────────────────────────────────────────────────────────────
+const City = sequelize.define('City', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name: { type: DataTypes.STRING(100), allowNull: false },
+  stateId: { type: DataTypes.INTEGER, references: { model: 'states', key: 'id' } },
+  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+  createdBy: { type: DataTypes.INTEGER },
+  updatedBy: { type: DataTypes.INTEGER },
+  isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
+}, { tableName: 'cities' });
+
 
 // ─── GstSlab ──────────────────────────────────────────────────────────────────
 const GstSlab = sequelize.define('GstSlab', {
@@ -293,6 +314,9 @@ const SaleInvoice = sequelize.define('SaleInvoice', {
   grandTotal: { type: DataTypes.DECIMAL(12,2), defaultValue: 0 },
   paidAmount: { type: DataTypes.DECIMAL(12,2), defaultValue: 0 },
   paymentMode: { type: DataTypes.STRING(50) },
+  chequeNo: { type: DataTypes.STRING(50) },
+  bankName: { type: DataTypes.STRING(150) },
+  transactionRef: { type: DataTypes.STRING(100) },
   status: { type: DataTypes.ENUM('draft','completed','cancelled'), defaultValue: 'completed' },
   notes: { type: DataTypes.TEXT },
   createdBy: { type: DataTypes.INTEGER },
@@ -347,6 +371,9 @@ const AuditLog = sequelize.define('AuditLog', {
 }, { tableName: 'audit_logs', updatedAt: false });
 
 // ─── Associations ─────────────────────────────────────────────────────────────
+State.hasMany(City, { foreignKey: 'stateId', as: 'cities' });
+City.belongsTo(State, { foreignKey: 'stateId', as: 'state' });
+
 Store.hasMany(Rack, { foreignKey: 'storeId', as: 'racks' });
 Rack.belongsTo(Store, { foreignKey: 'storeId', as: 'store' });
 
@@ -378,6 +405,7 @@ StockAdjustment.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch' });
 module.exports = {
   sequelize,
   User, Company, Store, Rack, Unit, GstSlab, HsnCode,
+  State, City,
   MedicineCategory, MedicineCompany, Medicine,
   Customer, Supplier, Doctor,
   Batch, PurchaseInvoice, PurchaseItem,

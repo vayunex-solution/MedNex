@@ -44,6 +44,8 @@ const navItems: NavItem[] = [
       { label: 'GST Slabs', icon: <AccountBalance />, path: '/masters/gst' },
       { label: 'Units', icon: <CategoryOutlined />, path: '/masters/units' },
       { label: 'Racks', icon: <Store />, path: '/masters/racks' },
+      { label: 'States', icon: <CategoryOutlined />, path: '/masters/states' },
+      { label: 'Cities', icon: <Store />, path: '/masters/cities' },
       { label: 'Users', icon: <Person />, path: '/masters/users' },
     ],
   },
@@ -66,6 +68,7 @@ const navItems: NavItem[] = [
       { label: 'Profit Report', icon: <TrendingUp />, path: '/reports/profit' },
       { label: 'Customer Ledger', icon: <People />, path: '/reports/customer-ledger' },
       { label: 'Supplier Ledger', icon: <Store />, path: '/reports/supplier-ledger' },
+      { label: 'Item Ledger', icon: <Inventory />, path: '/reports/item-ledger' },
     ],
   },
   { label: 'Settings', icon: <Settings />, path: '/settings' },
@@ -124,7 +127,7 @@ const AppLayout: React.FC = () => {
               </Tooltip>
               {!collapsed && (
                 <>
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: active ? 700 : 500 }} />
+                  <ListItemText primary={item.label} slotProps={{ primary: { sx: { fontSize: '0.875rem', fontWeight: active ? 700 : 500 } } }} />
                   {expanded ? <KeyboardArrowUp fontSize="small" /> : <KeyboardArrowDown fontSize="small" />}
                 </>
               )}
@@ -161,7 +164,7 @@ const AppLayout: React.FC = () => {
           {!collapsed && (
             <ListItemText
               primary={item.label}
-              primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: isActive(item.path) ? 700 : 400, color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.85)' }}
+              slotProps={{ primary: { sx: { fontSize: '0.85rem', fontWeight: isActive(item.path) ? 700 : 400, color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.85)' } } }}
             />
           )}
         </ListItemButton>
@@ -178,8 +181,8 @@ const AppLayout: React.FC = () => {
         </Box>
         {!collapsed && (
           <Box>
-            <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1.2, fontSize: '0.95rem' }}>MediBill Pro</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.7rem' }}>Pharmacy ERP</Typography>
+            <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1.2, fontSize: '0.95rem' }}>MedNex</Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.65rem' }}>by VayuNex Solution</Typography>
           </Box>
         )}
       </Box>
@@ -232,7 +235,7 @@ const AppLayout: React.FC = () => {
             )}
 
             <Typography variant="h6" sx={{ flex: 1, fontWeight: 700, fontSize: '1rem' }}>
-              {navItems.flatMap((i) => i.children || [i]).find((i) => i.path === location.pathname)?.label || 'MediBill Pro'}
+              {navItems.flatMap((i) => i.children || [i]).find((i) => i.path === location.pathname)?.label || 'MedNex'}
             </Typography>
 
             <Tooltip title="Toggle dark mode">
@@ -258,7 +261,7 @@ const AppLayout: React.FC = () => {
             </Tooltip>
 
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}
-              PaperProps={{ sx: { borderRadius: 2, minWidth: 200, mt: 1 } }}>
+              slotProps={{ paper: { sx: { borderRadius: 2, minWidth: 200, mt: 1 } } }}>
               <Box sx={{ px: 2, py: 1 }}>
                 <Typography variant="subtitle2" fontWeight={700}>{user?.name}</Typography>
                 <Typography variant="caption" color="text.secondary">{user?.email}</Typography>

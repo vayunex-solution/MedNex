@@ -1,21 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box, Typography, Card, CardContent, Grid, TextField, Button,
   Table, TableBody, TableCell, TableHead, TableRow, Paper,
-  Tab, Tabs, Chip, InputAdornment, CircularProgress,
+  Tab, Tabs, Chip, InputAdornment, CircularProgress, Autocomplete, IconButton
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { FileDownload, Assessment } from '@mui/icons-material';
+import { FileDownload, Assessment, Print } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import * as XLSX from 'xlsx';
-import { reportService } from '../../services';
+import { useReactToPrint } from 'react-to-print';
+import { reportService, customerService, supplierService, medicineService, saleService, companyService } from '../../services';
+import PrintableInvoice from '../../components/invoice/PrintableInvoice';
 
-const formatCurrency = (v: number) => `₹${v?.toFixed(2) || '0.00'}`;
+const formatCurrency = (v: number | string) => `₹${Number(v || 0).toFixed(2)}`;
 
-const ReportTable: React.FC<{ rows: Record<string, unknown>[]; columns: { key: string; label: string; align?: 'right' | 'left'; format?: (v: unknown) => string }[] }> = ({ rows, columns }) => (
+const ReportTable: React.FC<{ rows: Record<string, unknown>[]; columns: { key: string; label: string; align?: 'right' | 'left'; format?: (v: unknown, row: Record<string, unknown>) => React.ReactNode }[] }> = ({ rows, columns }) => (
   <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
     <Table size="small">
       <TableHead>
@@ -30,7 +32,7 @@ const ReportTable: React.FC<{ rows: Record<string, unknown>[]; columns: { key: s
           <TableRow key={i} hover>
             {columns.map((c) => (
               <TableCell key={c.key} align={c.align || 'left'}>
-                {c.format ? c.format(row[c.key]) : String(row[c.key] ?? '')}
+                {c.format ? c.format(row[c.key], row) : String(row[c.key] ?? '')}
               </TableCell>
             ))}
           </TableRow>
@@ -65,8 +67,28 @@ export const SalesReport: React.FC = () => {
   const [to, setTo] = useState<Dayjs | null>(dayjs());
   const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') });
   const { data, isLoading, refetch } = useQuery({ queryKey: ['report-sales', params], queryFn: () => reportService.getSales(params) });
+  
+  const { data: companyRes } = useQuery({ queryKey: ['company-details'], queryFn: () => companyService.get() });
+  const company = companyRes?.data?.data || null;
+
+  const printRef = useRef<HTMLDivElement>(null);
+  const [printInvoice, setPrintInvoice] = useState<unknown>(null);
+  const handlePrintAction = useReactToPrint({ contentRef: printRef });
+
+  const handlePrint = async (invoiceId: number) => {
+    try {
+      const res = await saleService.getById(invoiceId);
+      setPrintInvoice(res.data.data);
+      setTimeout(() => {
+        handlePrintAction();
+      }, 100);
+    } catch (error) {
+      console.error('Failed to load invoice for printing', error);
+    }
+  };
+
   const rows = (data?.data?.data as Record<string, unknown>[] || []);
-  const total = rows.reduce((s, r) => s + (r.grandTotal as number || 0), 0);
+  const total = rows.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
   const cols = [
     { key: 'invoiceNo', label: 'Invoice No' },
     { key: 'invoiceDate', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
@@ -74,6 +96,11 @@ export const SalesReport: React.FC = () => {
     { key: 'grandTotal', label: 'Amount', align: 'right' as const, format: (v: unknown) => formatCurrency(v as number) },
     { key: 'paymentMode', label: 'Payment' },
     { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Action', align: 'right' as const, format: (_: unknown, row: Record<string, unknown>) => (
+      <IconButton size="small" color="primary" onClick={() => handlePrint(row.id as number)}>
+        <Print fontSize="small" />
+      </IconButton>
+    )}
   ];
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({ Invoice: r.invoiceNo, Date: r.invoiceDate, Customer: (r.customer as Record<string, unknown>)?.name || 'Walk-in', Amount: r.grandTotal, Payment: r.paymentMode })));
@@ -82,12 +109,48 @@ export const SalesReport: React.FC = () => {
   };
   return (
     <Box>
+      <Box sx={{ display: 'none' }}>
+        <PrintableInvoice ref={printRef} invoice={printInvoice} company={company} />
+      </Box>
       <Typography variant="h5" fontWeight={700} mb={2}><Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />Sales Report</Typography>
       <ReportFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} onSearch={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') })} onExport={handleExport} loading={isLoading} />
       <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
         <Chip label={`Total: ${formatCurrency(total)}`} color="primary" />
       </Box>
       <ReportTable rows={rows.map((r) => ({ ...r, customerName: (r.customer as Record<string, unknown>)?.name || 'Walk-in' }))} columns={cols} />
+    </Box>
+  );
+};
+
+// ─── Purchase Report ─────────────────────────────────────────────────────────────
+export const PurchaseReport: React.FC = () => {
+  const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
+  const [to, setTo] = useState<Dayjs | null>(dayjs());
+  const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') });
+  const { data, isLoading } = useQuery({ queryKey: ['report-purchase', params], queryFn: () => reportService.getPurchase(params) });
+  const rows = (data?.data?.data as Record<string, unknown>[] || []);
+  const total = rows.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
+  const cols = [
+    { key: 'invoiceNo', label: 'Invoice No' },
+    { key: 'invoiceDate', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
+    { key: 'supplierName', label: 'Supplier', format: (_: unknown, row?: Record<string, unknown>) => (row?.supplier as Record<string, unknown>)?.name as string || 'Walk-in' },
+    { key: 'grandTotal', label: 'Amount', align: 'right' as const, format: (v: unknown) => formatCurrency(v as number) },
+    { key: 'paymentMode', label: 'Payment' },
+    { key: 'status', label: 'Status' },
+  ];
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({ Invoice: r.invoiceNo, Date: r.invoiceDate, Supplier: (r.supplier as Record<string, unknown>)?.name || 'Walk-in', Amount: r.grandTotal, Payment: r.paymentMode })));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Purchases');
+    XLSX.writeFile(wb, 'PurchaseReport.xlsx');
+  };
+  return (
+    <Box>
+      <Typography variant="h5" fontWeight={700} mb={2}><Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />Purchase Report</Typography>
+      <ReportFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} onSearch={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') })} onExport={handleExport} loading={isLoading} />
+      <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
+        <Chip label={`Total: ${formatCurrency(total)}`} color="secondary" />
+      </Box>
+      <ReportTable rows={rows.map((r) => ({ ...r, supplierName: (r.supplier as Record<string, unknown>)?.name || 'Walk-in' }))} columns={cols} />
     </Box>
   );
 };
@@ -134,6 +197,191 @@ export const ProfitReport: React.FC = () => {
     <Box>
       <Typography variant="h5" fontWeight={700} mb={2}>Profit Report</Typography>
       <ReportFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} onSearch={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') })} onExport={() => {}} loading={isLoading} />
+      <ReportTable rows={rows} columns={cols} />
+    </Box>
+  );
+};
+
+// ─── Customer Ledger ─────────────────────────────────────────────────────────────
+export const CustomerLedger: React.FC = () => {
+  const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
+  const [to, setTo] = useState<Dayjs | null>(dayjs());
+  const [customerId, setCustomerId] = useState<number | ''>('');
+  const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), customerId: '' as number | string });
+
+  const { data: customersData } = useQuery({ queryKey: ['customers-list'], queryFn: () => customerService.getList() });
+  const customers = (customersData?.data?.data as {id: number, name: string}[] || []);
+
+  const { data, isLoading } = useQuery({ queryKey: ['report-customer-ledger', params], queryFn: () => reportService.getCustomerLedger(params) });
+  const rows = (data?.data?.data as Record<string, unknown>[] || []);
+
+  // Get closing balance from the last row
+  const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+  const closingBalance = lastRow ? Number(lastRow.balance || 0) : 0;
+  const closingType = lastRow ? (lastRow.balanceType as string || 'Dr') : 'Dr';
+
+  const cols = [
+    { key: 'date', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
+    { key: 'voucherNo', label: 'Voucher No.' },
+    { key: 'type', label: 'Type' },
+    { key: 'debit', label: 'Debit', align: 'right' as const, format: (v: unknown) => Number(v) > 0 ? formatCurrency(v as number) : '0' },
+    { key: 'credit', label: 'Credit', align: 'right' as const, format: (v: unknown) => Number(v) > 0 ? formatCurrency(v as number) : '0' },
+    { key: 'balance', label: 'Balance', align: 'right' as const, format: (_: unknown, row?: Record<string, unknown>) => `${formatCurrency(row?.balance as number)} ${row?.balanceType || 'Dr'}` },
+  ];
+
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({
+      Date: r.date ? new Date(r.date as string).toLocaleDateString('en-IN') : '',
+      'Voucher No': r.voucherNo,
+      Type: r.type,
+      Debit: Number(r.debit || 0),
+      Credit: Number(r.credit || 0),
+      Balance: `${Number(r.balance || 0).toFixed(2)} ${r.balanceType || 'Dr'}`,
+    })));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Customer Ledger');
+    XLSX.writeFile(wb, 'CustomerLedger.xlsx');
+  };
+
+  return (
+    <Box>
+      <Typography variant="h5" fontWeight={700} mb={2}>Customer Ledger</Typography>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Autocomplete
+                options={customers}
+                getOptionLabel={(o) => o.name}
+                sx={{ width: 200 }}
+                size="small"
+                onChange={(_, v) => setCustomerId(v?.id || '')}
+                renderInput={(params) => <TextField {...params} label="Select Customer" />}
+              />
+              <DatePicker label="From Date" value={from} onChange={setFrom} slotProps={{ textField: { size: 'small' } }} />
+              <DatePicker label="To Date" value={to} onChange={setTo} slotProps={{ textField: { size: 'small' } }} />
+              <Button variant="contained" onClick={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), customerId })} disabled={isLoading}>
+                {isLoading ? <CircularProgress size={20} /> : 'Search'}
+              </Button>
+              <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExport}>Export Excel</Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </LocalizationProvider>
+      <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
+        <Chip label={`Closing Balance: ${formatCurrency(closingBalance)} ${closingType}`} color="primary" />
+      </Box>
+      <ReportTable rows={rows} columns={cols} />
+    </Box>
+  );
+};
+
+// ─── Supplier Ledger ─────────────────────────────────────────────────────────────
+export const SupplierLedger: React.FC = () => {
+  const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
+  const [to, setTo] = useState<Dayjs | null>(dayjs());
+  const [supplierId, setSupplierId] = useState<number | ''>('');
+  const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), supplierId: '' as number | string });
+
+  const { data: suppliersData } = useQuery({ queryKey: ['suppliers-list'], queryFn: () => supplierService.getList() });
+  const suppliers = (suppliersData?.data?.data as {id: number, name: string}[] || []);
+
+  const { data, isLoading } = useQuery({ queryKey: ['report-supplier-ledger', params], queryFn: () => reportService.getSupplierLedger(params) });
+  const rows = (data?.data?.data as Record<string, unknown>[] || []);
+  const totalAmount = rows.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
+
+  const cols = [
+    { key: 'invoiceDate', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
+    { key: 'invoiceNo', label: 'Invoice No' },
+    { key: 'supplierName', label: 'Supplier', format: (_: unknown, row?: Record<string, unknown>) => (row?.supplier as Record<string, unknown>)?.name as string || 'Walk-in' },
+    { key: 'paymentMode', label: 'Payment' },
+    { key: 'status', label: 'Status' },
+    { key: 'grandTotal', label: 'Amount', align: 'right' as const, format: (v: unknown) => formatCurrency(v as number) },
+  ];
+
+  return (
+    <Box>
+      <Typography variant="h5" fontWeight={700} mb={2}>Supplier Ledger</Typography>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Autocomplete
+                options={suppliers}
+                getOptionLabel={(o) => o.name}
+                sx={{ width: 200 }}
+                size="small"
+                onChange={(_, v) => setSupplierId(v?.id || '')}
+                renderInput={(params) => <TextField {...params} label="Select Supplier" />}
+              />
+              <DatePicker label="From Date" value={from} onChange={setFrom} slotProps={{ textField: { size: 'small' } }} />
+              <DatePicker label="To Date" value={to} onChange={setTo} slotProps={{ textField: { size: 'small' } }} />
+              <Button variant="contained" onClick={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), supplierId })} disabled={isLoading}>
+                {isLoading ? <CircularProgress size={20} /> : 'Search'}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </LocalizationProvider>
+      <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
+        <Chip label={`Total Purchases: ${formatCurrency(totalAmount)}`} color="secondary" />
+      </Box>
+      <ReportTable rows={rows.map((r) => ({ ...r, supplierName: (r.supplier as Record<string, unknown>)?.name || 'Walk-in' }))} columns={cols} />
+    </Box>
+  );
+};
+
+// ─── Item Ledger ─────────────────────────────────────────────────────────────
+export const ItemLedger: React.FC = () => {
+  const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
+  const [to, setTo] = useState<Dayjs | null>(dayjs());
+  const [medicineId, setMedicineId] = useState<number | ''>('');
+  const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), medicineId: '' as number | string });
+
+  const { data: medicinesData } = useQuery({ queryKey: ['medicines-list'], queryFn: () => medicineService.getList() });
+  const medicines = (medicinesData?.data?.data as {id: number, name: string}[] || []);
+
+  const { data, isLoading } = useQuery({ queryKey: ['report-item-ledger', params], queryFn: () => reportService.getItemLedger(params) });
+  const rows = (data?.data?.data as Record<string, unknown>[] || []);
+
+  const cols = [
+    { key: 'date', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
+    { key: 'voucherNo', label: 'Voucher No.' },
+    { key: 'type', label: 'Transaction Type' },
+    { key: 'partyName', label: 'Party Name', format: (v: unknown) => (v as string) || '-' },
+    { key: 'itemCode', label: 'Item Code' },
+    { key: 'medicineName', label: 'Item Name' },
+    { key: 'unit', label: 'Unit', format: (v: unknown) => (v as string) || '-' },
+    { key: 'openingQty', label: 'Opening Qty', align: 'right' as const },
+    { key: 'inwardQty', label: 'Inward Qty', align: 'right' as const },
+    { key: 'outwardQty', label: 'Outward Qty', align: 'right' as const },
+    { key: 'closingQty', label: 'Closing Qty', align: 'right' as const },
+    { key: 'rate', label: 'Rate', align: 'right' as const, format: (v: unknown) => Number(v) > 0 ? formatCurrency(v as number) : '-' },
+  ];
+
+  return (
+    <Box>
+      <Typography variant="h5" fontWeight={700} mb={2}>Item Ledger Report</Typography>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Autocomplete
+                options={medicines}
+                getOptionLabel={(o) => o.name}
+                sx={{ width: 250 }}
+                size="small"
+                onChange={(_, v) => setMedicineId(v?.id || '')}
+                renderInput={(params) => <TextField {...params} label="Select Medicine" />}
+              />
+              <DatePicker label="From Date" value={from} onChange={setFrom} slotProps={{ textField: { size: 'small' } }} />
+              <DatePicker label="To Date" value={to} onChange={setTo} slotProps={{ textField: { size: 'small' } }} />
+              <Button variant="contained" onClick={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), medicineId })} disabled={isLoading}>
+                {isLoading ? <CircularProgress size={20} /> : 'Search'}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </LocalizationProvider>
       <ReportTable rows={rows} columns={cols} />
     </Box>
   );

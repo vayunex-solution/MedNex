@@ -24,7 +24,7 @@ const seedAdmin = async () => {
   const companyExists = await Company.findOne();
   if (!companyExists) {
     await Company.create({
-      name: 'MediBill Pro Pharmacy',
+      name: 'MedNex Pharmacy',
       gstin: '29AABCU9603R1ZX',
       phone: '9876543210',
       email: 'info@medibillpro.com',
@@ -68,7 +68,7 @@ const start = async () => {
     await sequelize.sync({ alter: false, force: false });
     logger.info('Database synchronized');
     await seedAdmin();
-    app.listen(PORT, () => logger.info(`MediBill Pro server running on port ${PORT}`));
+    app.listen(PORT, () => logger.info(`MedNex server running on port ${PORT}`));
   } catch (err) {
     logger.error('Failed to start server:', err);
     process.exit(1);

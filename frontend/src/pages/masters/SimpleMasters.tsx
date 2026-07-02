@@ -2,9 +2,10 @@
 import React from 'react';
 import { Chip } from '@mui/material';
 import type { GridColDef } from '@mui/x-data-grid';
+import { useQuery } from '@tanstack/react-query';
 import CrudPage from '../../components/common/CrudPage';
 import SimpleForm from '../../components/common/SimpleForm';
-import { doctorService, medicineCategoryService, medicineCompanyService, hsnService, gstService, unitService, rackService } from '../../services';
+import { doctorService, medicineCategoryService, medicineCompanyService, hsnService, gstService, unitService, rackService, stateService, cityService } from '../../services';
 
 const makeSimpleFormWrapper = (title: string, queryKey: string, service: { create: (d: unknown) => Promise<unknown>; update: (id: number, d: unknown) => Promise<unknown> }, fields: Array<{ name: string; label: string; required?: boolean; type?: string }>) => {
   return (props: { open: boolean; onClose: () => void; editData?: unknown }) => (
@@ -124,3 +125,37 @@ export const Racks: React.FC = () => (
     { name: 'name', label: 'Rack Name', required: true },
   ])} searchPlaceholder="Search racks..." addButtonLabel="Add Rack" />
 );
+
+// ─── States
+const stateCols: GridColDef[] = [
+  { field: 'id', headerName: 'ID', width: 70 },
+  { field: 'name', headerName: 'State Name', flex: 1 },
+  { field: 'isActive', headerName: 'Status', width: 100, renderCell: (p) => <Chip label={p.value ? 'Active' : 'Inactive'} color={p.value ? 'success' : 'error'} size="small" /> },
+];
+export const States: React.FC = () => (
+  <CrudPage title="State Master" queryKey="states" service={stateService} columns={stateCols} FormComponent={makeSimpleFormWrapper('State', 'states', stateService, [
+    { name: 'name', label: 'State Name', required: true },
+  ])} searchPlaceholder="Search states..." addButtonLabel="Add State" />
+);
+
+// ─── Cities
+const cityCols: GridColDef[] = [
+  { field: 'id', headerName: 'ID', width: 70 },
+  { field: 'name', headerName: 'City Name', flex: 1 },
+  { field: 'state', headerName: 'State', flex: 1, valueGetter: (p: any, row: any) => row.state?.name || '' },
+  { field: 'isActive', headerName: 'Status', width: 100, renderCell: (p) => <Chip label={p.value ? 'Active' : 'Inactive'} color={p.value ? 'success' : 'error'} size="small" /> },
+];
+
+export const Cities: React.FC = () => {
+  const { data: statesData } = useQuery({ queryKey: ['states'], queryFn: () => stateService.list() });
+  const states = (statesData?.data?.data as { id: number; name: string }[]) || [];
+
+  const formComponent = React.useMemo(() => makeSimpleFormWrapper('City', 'cities', cityService, [
+    { name: 'name', label: 'City Name', required: true },
+    { name: 'stateId', label: 'State', required: true, options: states },
+  ]), [states]);
+
+  return (
+    <CrudPage title="City Master" queryKey="cities" service={cityService} columns={cityCols} FormComponent={formComponent} searchPlaceholder="Search cities..." addButtonLabel="Add City" />
+  );
+};

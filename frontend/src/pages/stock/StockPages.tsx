@@ -1,19 +1,60 @@
 import React, { useState } from 'react';
 import {
-  Box, Typography, Paper, Chip, Button,
+  Box, Typography, Paper, Chip, Button, Dialog, DialogTitle, DialogContent, IconButton
 } from '@mui/material';
-import { FileDownload, Warning } from '@mui/icons-material';
+import { FileDownload, Warning, Search, Close } from '@mui/icons-material';
 
 import { useQuery } from '@tanstack/react-query';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import * as XLSX from 'xlsx';
-import { stockService } from '../../services';
+import { stockService, batchService } from '../../services';
 
+
+const MedicineBatchesModal: React.FC<{ open: boolean; onClose: () => void; medicineId: number | null; medicineName: string }> = ({ open, onClose, medicineId, medicineName }) => {
+  const { data, isLoading } = useQuery({ 
+    queryKey: ['batches', medicineId], 
+    queryFn: () => batchService.getByMedicine(medicineId as number),
+    enabled: !!medicineId && open
+  });
+  
+  const rows = (data?.data?.data as Record<string, unknown>[] || []).map((r, i) => ({ ...r, id: r.id || i }));
+  const cols: GridColDef[] = [
+    { field: 'batchNo', headerName: 'Batch No', width: 130 },
+    { field: 'expiryDate', headerName: 'Expiry', width: 120, renderCell: (p) => p.value ? new Date(p.value as string).toLocaleDateString('en-IN') : '-' },
+    { field: 'qty', headerName: 'Current Stock', width: 110 },
+    { field: 'mrp', headerName: 'MRP', width: 100, renderCell: (p) => `₹${Number(p.value || 0).toFixed(2)}` },
+    { field: 'purchaseRate', headerName: 'Purchase Rate', width: 120, renderCell: (p) => `₹${Number(p.value || 0).toFixed(2)}` },
+    { field: 'createdAt', headerName: 'Date Added', width: 120, renderCell: (p) => p.value ? new Date(p.value as string).toLocaleDateString('en-IN') : '-' },
+  ];
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', m: 0, p: 2 }}>
+        Purchase/Batch Details: {medicineName}
+        <IconButton onClick={onClose}><Close /></IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ height: 400 }}>
+          <DataGrid rows={rows} columns={cols} loading={isLoading} pageSizeOptions={[10, 25]} sx={{ border: 'none' }} />
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const CurrentStock: React.FC = () => {
   const [search, setSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedMed, setSelectedMed] = useState<{id: number, name: string} | null>(null);
+
   const { data, isLoading } = useQuery({ queryKey: ['stock-current', search], queryFn: () => stockService.getCurrent({ search }) });
   const rows = (data?.data?.data as Record<string, unknown>[] || []).map((r, i) => ({ ...r, id: r.id || i }));
+  
+  const handleStockClick = (row: any) => {
+    setSelectedMed({ id: row.id, name: row.name });
+    setModalOpen(true);
+  };
+
   const cols: GridColDef[] = [
     { field: 'name', headerName: 'Medicine', flex: 1, minWidth: 200 },
     { field: 'genericName', headerName: 'Generic Name', flex: 1, minWidth: 160 },
@@ -22,7 +63,13 @@ const CurrentStock: React.FC = () => {
     { field: 'currentStock', headerName: 'Current Stock', width: 130, renderCell: (p) => {
       const qty = p.value as number;
       const reorder = p.row.reorderLevel as number;
-      return <Chip label={qty} color={qty <= 0 ? 'error' : qty <= reorder ? 'warning' : 'success'} size="small" />;
+      return <Chip 
+        label={qty} 
+        color={qty <= 0 ? 'error' : qty <= reorder ? 'warning' : 'success'} 
+        size="small" 
+        onClick={() => handleStockClick(p.row)}
+        sx={{ cursor: 'pointer' }}
+      />;
     }},
     { field: 'reorderLevel', headerName: 'Reorder Level', width: 130 },
     { field: 'mrp', headerName: 'MRP', width: 100, renderCell: (p) => `₹${Number(p.value || 0).toFixed(2)}` },
@@ -54,6 +101,14 @@ const CurrentStock: React.FC = () => {
       <Paper sx={{ height: 520 }}>
         <DataGrid rows={rows} columns={cols} loading={isLoading} pageSizeOptions={[20, 50, 100]} sx={{ border: 'none' }} />
       </Paper>
+      {selectedMed && (
+        <MedicineBatchesModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          medicineId={selectedMed.id}
+          medicineName={selectedMed.name}
+        />
+      )}
     </Box>
   );
 };

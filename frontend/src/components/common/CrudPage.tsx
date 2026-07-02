@@ -121,8 +121,10 @@ const CrudPage: React.FC<CrudPageProps> = ({
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           size="small"
           sx={{ width: 320 }}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
+          slotProps={{
+            input: {
+              startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
+            },
           }}
         />
       </Paper>

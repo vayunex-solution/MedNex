@@ -6,6 +6,7 @@ const { createCrudController } = require('../controllers/crudController');
 const {
   Customer, Supplier, Doctor, MedicineCategory, MedicineCompany,
   HsnCode, GstSlab, Unit, Rack, Store, Company, Batch,
+  State, City,
 } = require('../models');
 
 // ─── Generic CRUD router factory ──────────────────────────────────────────────
@@ -31,6 +32,8 @@ const gstCtrl = createCrudController(GstSlab, { searchFields: ['slab'] });
 const unitCtrl = createCrudController(Unit, { searchFields: ['name', 'shortName'] });
 const rackCtrl = createCrudController(Rack, { searchFields: ['name'] });
 const storeCtrl = createCrudController(Store, { searchFields: ['name'] });
+const stateCtrl = createCrudController(State, { searchFields: ['name'] });
+const cityCtrl = createCrudController(City, { searchFields: ['name'], include: [{ model: State, as: 'state' }] });
 
 const router = express.Router();
 router.use('/customers', crudRouter(customerCtrl));
@@ -43,6 +46,8 @@ router.use('/gst-slabs', crudRouter(gstCtrl));
 router.use('/units', crudRouter(unitCtrl));
 router.use('/racks', crudRouter(rackCtrl));
 router.use('/stores', crudRouter(storeCtrl));
+router.use('/states', crudRouter(stateCtrl));
+router.use('/cities', crudRouter(cityCtrl));
 
 // Company settings
 router.get('/company', authenticate, async (req, res) => {

@@ -54,6 +54,7 @@ router.get('/reports/gst', authenticate, reportCtrl.getGstReport);
 router.get('/reports/profit', authenticate, reportCtrl.getProfitReport);
 router.get('/reports/customer-ledger', authenticate, reportCtrl.getCustomerLedger);
 router.get('/reports/supplier-ledger', authenticate, reportCtrl.getSupplierLedger);
+router.get('/reports/item-ledger', authenticate, reportCtrl.getItemLedger);
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 router.get('/dashboard/stats', authenticate, dashboardCtrl.getStats);

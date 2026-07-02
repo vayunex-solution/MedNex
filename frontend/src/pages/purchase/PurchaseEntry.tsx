@@ -8,7 +8,7 @@ import {
 import { Add, Delete, Save, ShoppingCart } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { supplierService, medicineService, purchaseService } from '../../services';
+import { supplierService, medicineService, purchaseService, companyService } from '../../services';
 import type { Supplier, Medicine } from '../../types';
 
 const PAYMENT_MODES = ['Cash', 'Credit', 'NEFT', 'Cheque'];
@@ -44,8 +44,11 @@ const PurchaseEntry: React.FC = () => {
   const { data: medicinesData } = useQuery({
     queryKey: ['medicines-pur-search', medSearch],
     queryFn: () => medicineService.getAll({ search: medSearch, limit: 20 }),
-    enabled: medSearch.length > 0,
   });
+  const { data: companyRes } = useQuery({ queryKey: ['company-details'], queryFn: () => companyService.get() });
+  
+  const company = companyRes?.data?.data || null;
+  const isInterState = Boolean(company?.state && supplier?.state && company.state.trim().toLowerCase() !== supplier.state.trim().toLowerCase());
 
   const suppliers = (suppliersData?.data?.data as Supplier[] || []);
   const medicines = (medicinesData?.data?.data as Medicine[] || []);
@@ -117,9 +120,10 @@ const PurchaseEntry: React.FC = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6} md={3}>
                   <Autocomplete options={suppliers} getOptionLabel={(o) => o.name} value={supplier} onChange={(_, v) => setSupplier(v)}
+                    sx={{ minWidth: 250 }}
                     renderInput={(params) => <TextField {...params} label="Supplier *" size="small" />} />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}><TextField label="Invoice Date" type="date" size="small" fullWidth value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
+                <Grid item xs={12} sm={6} md={2}><TextField label="Invoice Date" type="date" size="small" fullWidth value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></Grid>
                 <Grid item xs={12} sm={6} md={3}><TextField label="Supplier Invoice No" size="small" fullWidth value={supplierInvoiceNo} onChange={(e) => setSupplierInvoiceNo(e.target.value)} /></Grid>
                 <Grid item xs={12} sm={6} md={2}>
                   <FormControl size="small" fullWidth>
@@ -155,7 +159,7 @@ const PurchaseEntry: React.FC = () => {
                       <TableCell sx={{ minWidth: 80 }}>PTR</TableCell>
                       <TableCell sx={{ minWidth: 80 }}>Rate</TableCell>
                       <TableCell sx={{ minWidth: 70 }}>Disc%</TableCell>
-                      <TableCell sx={{ minWidth: 70 }}>GST%</TableCell>
+                      <TableCell sx={{ minWidth: 70 }}>{isInterState ? 'IGST%' : 'GST%'}</TableCell>
                       <TableCell sx={{ minWidth: 90 }}>GST Amt</TableCell>
                       <TableCell sx={{ minWidth: 100 }}>Amount</TableCell>
                       <TableCell></TableCell>
@@ -173,7 +177,7 @@ const PurchaseEntry: React.FC = () => {
                             renderInput={(params) => <TextField {...params} placeholder="Search" />} />
                         </TableCell>
                         <TableCell><TextField size="small" sx={{ width: 100 }} value={row.batchNo} onChange={(e) => updateRow(idx, 'batchNo', e.target.value)} /></TableCell>
-                        <TableCell><TextField size="small" type="date" sx={{ width: 130 }} value={row.expiryDate} onChange={(e) => updateRow(idx, 'expiryDate', e.target.value)} InputLabelProps={{ shrink: true }} /></TableCell>
+                        <TableCell><TextField size="small" type="date" sx={{ width: 130 }} value={row.expiryDate} onChange={(e) => updateRow(idx, 'expiryDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></TableCell>
                         <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.qty} onChange={(e) => updateRow(idx, 'qty', parseFloat(e.target.value) || 0)} /></TableCell>
                         <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.freeQty} onChange={(e) => updateRow(idx, 'freeQty', parseFloat(e.target.value) || 0)} /></TableCell>
                         <TableCell><TextField size="small" type="number" sx={{ width: 75 }} value={row.mrp} onChange={(e) => updateRow(idx, 'mrp', parseFloat(e.target.value) || 0)} /></TableCell>

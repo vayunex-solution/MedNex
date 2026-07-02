@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   Box, Card, CardContent, Typography, Grid, TextField, Button,
-  Tab, Tabs, Divider, CircularProgress,
+  Tab, Tabs, Divider, CircularProgress, Autocomplete
 } from '@mui/material';
 import { Save, Business, Receipt, Email } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { companyService } from '../../services';
+import { companyService, stateService, cityService } from '../../services';
 
 const Settings: React.FC = () => {
   const queryClient = useQueryClient();
@@ -19,6 +19,16 @@ const Settings: React.FC = () => {
     queryKey: ['company'],
     queryFn: () => companyService.get(),
   });
+
+  const { data: statesData } = useQuery({ queryKey: ['states'], queryFn: () => stateService.list() });
+  const { data: citiesData } = useQuery({ queryKey: ['cities'], queryFn: () => cityService.list() });
+
+  const states = (statesData?.data?.data as { id: number; name: string }[]) || [];
+  const allCities = (citiesData?.data?.data as { id: number; name: string; stateId: number; state?: { name: string } }[]) || [];
+
+  const selectedState = states.find(s => s.name === form.state);
+  const cities = selectedState ? allCities.filter(c => c.stateId === selectedState.id) : allCities;
+
 
   React.useEffect(() => {
     const d = data?.data?.data as Record<string, string> | undefined;
@@ -38,6 +48,29 @@ const Settings: React.FC = () => {
       onChange={(e) => setForm((prev) => ({ ...prev, [name]: e.target.value }))}
       fullWidth size="small" {...props}
     />
+  );
+
+  const sel = (name: string, label: string, options: { name: string }[]) => (
+    <Box sx={{ width: '100%', display: 'flex', minWidth: 200 }}>
+      <Autocomplete
+        fullWidth
+        sx={{ width: '100%', flexGrow: 1 }}
+        size="small"
+        options={options}
+        getOptionLabel={(option) => option.name}
+        value={options.find(o => o.name === form[name]) || null}
+        onChange={(_, newValue) => {
+          setForm((prev) => {
+             let updates = { ...prev, [name]: newValue ? newValue.name : '' };
+             if (name === 'state' && (!newValue || newValue.name !== prev.state)) {
+               updates.city = ''; // reset city when state changes
+             }
+             return updates;
+          });
+        }}
+        renderInput={(params) => <TextField {...params} fullWidth label={label} />}
+      />
+    </Box>
   );
 
   return (
@@ -62,9 +95,9 @@ const Settings: React.FC = () => {
               <Grid item xs={12} sm={6}>{f('email', 'Email')}</Grid>
               <Grid item xs={12} sm={6}>{f('website', 'Website')}</Grid>
               <Grid item xs={12}>{f('address', 'Address', { multiline: true, rows: 2 })}</Grid>
-              <Grid item xs={12} sm={4}>{f('city', 'City')}</Grid>
-              <Grid item xs={12} sm={4}>{f('state', 'State')}</Grid>
-              <Grid item xs={12} sm={4}>{f('pincode', 'PIN Code')}</Grid>
+              <Grid item xs={12} sm={6}>{sel('state', 'State', states)}</Grid>
+              <Grid item xs={12} sm={6}>{sel('city', 'City', cities)}</Grid>
+              <Grid item xs={12} sm={6}>{f('pincode', 'PIN Code')}</Grid>
               <Grid item xs={12}><Divider><Typography variant="caption">Bank Details</Typography></Divider></Grid>
               <Grid item xs={12} sm={4}>{f('bankName', 'Bank Name')}</Grid>
               <Grid item xs={12} sm={4}>{f('bankAccount', 'Account Number')}</Grid>

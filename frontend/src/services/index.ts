@@ -12,6 +12,7 @@ export const authService = {
 const crudService = (endpoint: string) => ({
   getAll: (params?: Record<string, unknown>) => api.get(endpoint, { params }),
   getList: () => api.get(`${endpoint}/list`),
+  list: () => api.get(`${endpoint}/list`),
   getById: (id: number) => api.get(`${endpoint}/${id}`),
   create: (data: unknown) => api.post(endpoint, data),
   update: (id: number, data: unknown) => api.put(`${endpoint}/${id}`, data),
@@ -29,6 +30,8 @@ export const unitService = crudService('/units');
 export const rackService = crudService('/racks');
 export const storeService = crudService('/stores');
 export const userService = crudService('/users');
+export const stateService = crudService('/states');
+export const cityService = crudService('/cities');
 
 // ─── Medicine (with file upload) ──────────────────────────────────────────────
 export const medicineService = {
@@ -76,6 +79,7 @@ export const reportService = {
   getProfit: (params?: Record<string, unknown>) => api.get('/reports/profit', { params }),
   getCustomerLedger: (params?: Record<string, unknown>) => api.get('/reports/customer-ledger', { params }),
   getSupplierLedger: (params?: Record<string, unknown>) => api.get('/reports/supplier-ledger', { params }),
+  getItemLedger: (params?: Record<string, unknown>) => api.get('/reports/item-ledger', { params }),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
