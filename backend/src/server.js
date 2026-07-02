@@ -10,16 +10,16 @@ const PORT = process.env.PORT || 5000;
 
 const seedAdmin = async () => {
   const { User, Company, GstSlab, Unit } = require('./models');
-  const adminExists = await User.findOne({ where: { email: 'admin@medibill.com' } });
+  const adminExists = await User.findOne({ where: { email: 'admin@mednex.com' } });
   if (!adminExists) {
     await User.create({
       name: 'Super Admin',
-      email: 'admin@medibill.com',
+      email: 'admin@mednex.com',
       password: await bcrypt.hash('Admin@123', 12),
       role: 'super_admin',
       isActive: true,
     });
-    logger.info('Default admin user created: admin@medibill.com / Admin@123');
+    logger.info('Default admin user created: admin@mednex.com / Admin@123');
   }
   const companyExists = await Company.findOne();
   if (!companyExists) {
