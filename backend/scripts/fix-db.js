@@ -11,16 +11,11 @@ async function run() {
     database: process.env.DB_NAME
   });
 
-  console.log('Connected to database. Fixing auto-increment schemas...');
+  console.log('Connected to database. Disabling foreign key checks and fixing auto-increment...');
   
   try {
-    // 1. Drop foreign keys that prevent altering
-    try {
-      console.log('Dropping foreign key audit_logs_userId_fkey...');
-      await connection.query('ALTER TABLE `audit_logs` DROP FOREIGN KEY `audit_logs_userId_fkey`');
-    } catch(e) { 
-      console.log('Note (might not exist yet):', e.message); 
-    }
+    // 1. Disable foreign key checks for this session
+    await connection.query('SET FOREIGN_KEY_CHECKS = 0');
 
     // 2. Clean up any invalid/empty rows that could block auto_increment setup
     console.log('Cleaning up users table...');
@@ -30,13 +25,8 @@ async function run() {
     console.log('Setting auto_increment on users.id...');
     await connection.query('ALTER TABLE `users` MODIFY `id` INTEGER NOT NULL AUTO_INCREMENT');
 
-    // 4. Re-create the foreign key constraint
-    try {
-      console.log('Re-creating foreign key constraint...');
-      await connection.query('ALTER TABLE `audit_logs` ADD CONSTRAINT `audit_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE');
-    } catch(e) { 
-      console.log('Note (re-creation):', e.message); 
-    }
+    // 4. Re-enable foreign key checks
+    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 
     console.log('Database fix script completed successfully!');
   } catch (err) {
