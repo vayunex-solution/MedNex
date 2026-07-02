@@ -10,20 +10,32 @@ const PORT = process.env.PORT || 5000;
 
 const seedAdmin = async () => {
   const { User, Company, GstSlab, Unit } = require('./models');
-  const adminExists = await User.findOne({ where: { email: 'admin@mednex.com' } });
-  if (!adminExists) {
+  
+  // Self-healing: Check if a super admin already exists
+  const admin = await User.findOne({ where: { role: 'super_admin' } });
+  if (admin) {
+    if (admin.email !== 'admin@mednex.com') {
+      admin.email = 'admin@mednex.com';
+      await admin.save();
+      logger.info('Admin email updated to admin@mednex.com');
+    }
+  } else {
+    // If not, create one with an explicit ID to bypass auto_increment issues
     await User.create({
+      id: 1,
       name: 'Super Admin',
       email: 'admin@mednex.com',
       password: await bcrypt.hash('Admin@123', 12),
       role: 'super_admin',
       isActive: true,
     });
-    logger.info('Default admin user created: admin@mednex.com / Admin@123');
+    logger.info('Default admin user created with ID 1: admin@mednex.com / Admin@123');
   }
+
   const companyExists = await Company.findOne();
   if (!companyExists) {
     await Company.create({
+      id: 1, // Explicit ID to bypass auto_increment issues
       name: 'MedNex Pharmacy',
       gstin: '29AABCU9603R1ZX',
       phone: '9876543210',
