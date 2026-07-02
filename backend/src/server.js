@@ -65,7 +65,7 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
-    await sequelize.sync({ alter: false, force: false });
+    await sequelize.sync({ alter: true, force: false });
     logger.info('Database synchronized');
     await seedAdmin();
     app.listen(PORT, () => logger.info(`MedNex server running on port ${PORT}`));
