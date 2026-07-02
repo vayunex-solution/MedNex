@@ -7,7 +7,7 @@ import {
 import {
   Email, Lock, Visibility, VisibilityOff, LocalPharmacy,
   TrendingUp, Inventory, Receipt, BarChart, ArrowForward,
-  CheckCircleOutline,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -330,7 +330,7 @@ const Login: React.FC = () => {
           bgcolor: '#EFF6FF', border: '1px solid #BFDBFE',
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <CheckCircleOutline sx={{ fontSize: 16, color: '#1565C0' }} />
+            <CheckCircle sx={{ fontSize: 16, color: '#1565C0' }} />
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#1565C0' }}>Demo Credentials</Typography>
           </Box>
           <Typography sx={{ fontSize: '0.8rem', color: '#1E40AF' }}>
