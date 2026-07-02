@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - /bin/cp -Rf backend/. /home/vayunexs/api.mednex.vayunexsolution.com/
+    - /bin/cp -Rf frontend/dist/. /home/vayunexs/mednex.vayunexsolution.com/
+    - export HOME=/home/vayunexs && cd /home/vayunexs/api.mednex.vayunexsolution.com && /home/vayunexs/nodevenv/api.mednex.vayunexsolution.com/24/bin/npm install --production

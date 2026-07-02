@@ -2,8 +2,10 @@ import axios from 'axios';
 import { store } from '../redux/store';
 import { logout, setCredentials } from '../redux/slices/authSlice';
 
+const baseURL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
@@ -51,7 +53,7 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
+        const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
         const { accessToken, refreshToken: newRefresh } = data.data;
         const user = store.getState().auth.user!;
         store.dispatch(setCredentials({ user, accessToken, refreshToken: newRefresh }));

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MedNex – Smart Pharmacy Management System | by VayuNex Solution</title>
+  <meta name="description" content="MedNex is a professional GST-compliant Pharmacy Management & Billing System built by VayuNex Solution. Manage sales, purchases, stock, and generate invoices in seconds."/>
+  <meta name="keywords" content="pharmacy management, GST billing, MedNex, VayuNex Solution, pharmacy software, medicine billing, inventory management"/>
+  <meta property="og:title" content="MedNex – Smart Pharmacy Management"/>
+  <meta property="og:description" content="Professional GST Pharmacy Billing System powered by VayuNex Solution"/>
+  <meta property="og:url" content="https://vayunexsolution.com"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue-900: #0d1b4b;
+      --blue-800: #1565C0;
+      --blue-600: #1976D2;
+      --blue-400: #42A5F5;
+      --blue-100: #E3F2FD;
+      --indigo:   #5C6BC0;
+      --purple:   #7B52F6;
+      --green:    #2E7D32;
+      --orange:   #F57F17;
+      --red:      #C62828;
+      --teal:     #00695C;
+      --white:    #ffffff;
+      --gray-50:  #F8FAFC;
+      --gray-100: #F1F5F9;
+      --gray-200: #E2E8F0;
+      --gray-400: #94A3B8;
+      --gray-600: #475569;
+      --gray-800: #1E293B;
+      --text:     #0F172A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(255,255,255,0.88);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 5%;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+      transition: box-shadow 0.3s;
+    }
+    nav.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, #1565C0, #0288D1);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; color: #fff; letter-spacing: -0.5px;
+    }
+    .nav-logo-text { font-weight: 800; font-size: 1.15rem; color: var(--blue-800); }
+    .nav-logo-sub { font-size: 0.65rem; color: var(--gray-400); font-weight: 500; letter-spacing: 0.5px; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--gray-600); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--blue-800); }
+    .nav-cta {
+      background: linear-gradient(135deg, #1565C0, #0288D1);
+      color: #fff; padding: 0.5rem 1.4rem; border-radius: 8px;
+      text-decoration: none; font-weight: 700; font-size: 0.875rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(21,101,192,0.4); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #F8FAFF 0%, #EEF2FF 40%, #E3F2FD 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 100px 5% 60px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; right: -200px;
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(92,107,192,0.12) 0%, transparent 70%);
+    }
+    .hero::after {
+      content: '';
+      position: absolute; bottom: -150px; left: -150px;
+      width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(21,101,192,0.10) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(21,101,192,0.08); border: 1px solid rgba(21,101,192,0.2);
+      border-radius: 50px; padding: 6px 16px; margin-bottom: 24px;
+      font-size: 0.78rem; font-weight: 600; color: var(--blue-800);
+      animation: fadeInDown 0.6s ease;
+    }
+    .hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #4CAF50; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+    .hero-title {
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: var(--blue-900);
+      margin-bottom: 24px;
+      animation: fadeInUp 0.7s ease 0.1s both;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #1565C0, #7B52F6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--gray-600); max-width: 620px; margin: 0 auto 40px;
+      font-weight: 400; line-height: 1.7;
+      animation: fadeInUp 0.7s ease 0.2s both;
+    }
+    .hero-actions {
+      display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+      animation: fadeInUp 0.7s ease 0.3s both;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1565C0, #0288D1);
+      color: #fff; padding: 0.875rem 2rem; border-radius: 12px;
+      text-decoration: none; font-weight: 700; font-size: 1rem;
+      box-shadow: 0 8px 28px rgba(21,101,192,0.35);
+      transition: transform 0.2s, box-shadow 0.2s; display: inline-block;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(21,101,192,0.45); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.9); border: 2px solid var(--gray-200);
+      color: var(--text); padding: 0.875rem 2rem; border-radius: 12px;
+      text-decoration: none; font-weight: 600; font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--blue-600); box-shadow: 0 4px 16px rgba(21,101,192,0.15); }
+    .hero-stats {
+      display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;
+      margin-top: 60px;
+      animation: fadeInUp 0.7s ease 0.4s both;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: var(--blue-800); }
+    .stat-label { font-size: 0.8rem; color: var(--gray-400); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .hero-scroll { margin-top: 48px; animation: bounce 2s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+
+    @keyframes fadeInDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── SECTIONS ── */
+    section { padding: 96px 5%; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--blue-600); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 800; color: var(--gray-800); line-height: 1.2; margin-bottom: 16px;
+    }
+    .section-sub { color: var(--gray-600); font-size: 1.05rem; max-width: 560px; line-height: 1.7; }
+
+    /* ── FEATURES ── */
+    #features { background: var(--gray-50); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px; margin-top: 56px;
+    }
+    .feature-card {
+      background: #fff; border-radius: 20px; padding: 28px;
+      border: 1px solid var(--gray-200);
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #1565C0, #7B52F6); opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.10); border-color: var(--blue-100); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px; margin-bottom: 18px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .feature-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+    .feature-desc { font-size: 0.875rem; color: var(--gray-600); line-height: 1.65; }
+
+    /* ── HOW IT WORKS ── */
+    #how { background: #fff; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 32px; margin-top: 56px; }
+    .step { text-align: center; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #1565C0, #0288D1);
+      color: #fff; font-weight: 900; font-size: 1.2rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 8px 24px rgba(21,101,192,0.3);
+    }
+    .step-title { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+    .step-desc { font-size: 0.85rem; color: var(--gray-600); line-height: 1.6; }
+
+    /* ── PRODUCTS TICKER ── */
+    .ticker-section { background: var(--gray-50); padding: 48px 0; overflow: hidden; }
+    .ticker-label { text-align: center; font-size: 0.78rem; font-weight: 700; letter-spacing: 2px; color: var(--gray-400); text-transform: uppercase; margin-bottom: 24px; }
+    .ticker-track {
+      display: flex; gap: 24px; animation: ticker 25s linear infinite;
+    }
+    .ticker-item {
+      flex-shrink: 0;
+      background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
+      padding: 12px 24px; font-size: 0.85rem; font-weight: 600; color: var(--gray-600);
+      white-space: nowrap;
+    }
+    @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    /* ── VAYUNEX SECTION ── */
+    #vayunex {
+      background: linear-gradient(160deg, #0d1b4b 0%, #1a237e 50%, #1565C0 100%);
+      color: #fff; padding: 100px 5%;
+    }
+    .vayunex-inner { max-width: 1100px; margin: 0 auto; }
+    .vayunex-header { display: flex; align-items: center; gap: 20px; margin-bottom: 56px; flex-wrap: wrap; }
+    .vayunex-logo-big {
+      font-size: clamp(3rem, 6vw, 5.5rem); font-weight: 900; letter-spacing: -2px; line-height: 1;
+      background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.4) 100%);
+      background-size: 200% auto;
+      color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation: shine 4s linear infinite;
+    }
+    @keyframes shine { to { background-position: 200% center; } }
+    .vayunex-tagline { font-size: 1rem; letter-spacing: 8px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-top: 4px; }
+    .vayunex-desc {
+      font-size: 1.05rem; color: rgba(255,255,255,0.75); line-height: 1.75;
+      max-width: 640px; margin-bottom: 48px;
+    }
+    .vayunex-services {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; margin-bottom: 56px;
+    }
+    .vservice {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; padding: 24px;
+      transition: background 0.3s, transform 0.25s;
+    }
+    .vservice:hover { background: rgba(255,255,255,0.12); transform: translateY(-3px); }
+    .vservice-icon { font-size: 28px; margin-bottom: 12px; }
+    .vservice-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .vservice-desc { font-size: 0.82rem; color: rgba(255,255,255,0.6); line-height: 1.6; }
+    .vayunex-products { margin-top: 16px; }
+    .vp-title { font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 16px; font-weight: 600; }
+    .vp-list { display: flex; flex-wrap: wrap; gap: 12px; }
+    .vp-chip {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50px; padding: 6px 18px; font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.8);
+    }
+    .vayunex-cta {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 56px; background: rgba(255,255,255,0.06); border-radius: 20px;
+      padding: 32px 40px; border: 1px solid rgba(255,255,255,0.12);
+      flex-wrap: wrap; gap: 24px;
+    }
+    .vayunex-cta-text h3 { font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; }
+    .vayunex-cta-text p { color: rgba(255,255,255,0.65); font-size: 0.9rem; }
+    .vayunex-cta-btn {
+      background: #fff; color: var(--blue-800);
+      padding: 0.75rem 1.75rem; border-radius: 10px;
+      font-weight: 700; text-decoration: none; font-size: 0.9rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+    .vayunex-cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .engineered { text-align: center; margin-top: 40px; font-size: 0.75rem; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; }
+
+    /* ── TESTIMONIAL / TRUST ── */
+    #trust { background: var(--gray-50); }
+    .trust-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; margin-top: 56px; }
+    .trust-card {
+      background: #fff; border-radius: 16px; padding: 24px;
+      border: 1px solid var(--gray-200);
+      transition: box-shadow 0.25s;
+    }
+    .trust-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+    .trust-stars { color: #FFC107; font-size: 1rem; margin-bottom: 12px; }
+    .trust-quote { font-size: 0.875rem; color: var(--gray-600); line-height: 1.7; margin-bottom: 16px; font-style: italic; }
+    .trust-author { font-size: 0.82rem; font-weight: 700; color: var(--gray-800); }
+    .trust-role { font-size: 0.75rem; color: var(--gray-400); }
+
+    /* ── CTA BANNER ── */
+    #cta-banner {
+      background: linear-gradient(135deg, #1565C0 0%, #7B52F6 100%);
+      color: #fff; text-align: center; padding: 80px 5%;
+    }
+    #cta-banner h2 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 900; margin-bottom: 16px; letter-spacing: -0.5px; }
+    #cta-banner p { color: rgba(255,255,255,0.8); font-size: 1.05rem; max-width: 540px; margin: 0 auto 36px; }
+    #cta-banner .btn-white {
+      background: #fff; color: var(--blue-800);
+      padding: 0.9rem 2.2rem; border-radius: 12px;
+      text-decoration: none; font-weight: 800; font-size: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s; display: inline-block;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.2);
+    }
+    #cta-banner .btn-white:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,0.3); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--gray-800); color: rgba(255,255,255,0.7);
+      padding: 64px 5% 32px;
+    }
+    .footer-grid {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; gap: 48px;
+      margin-bottom: 48px;
+    }
+    .footer-brand-name { font-size: 1.6rem; font-weight: 900; color: #fff; margin-bottom: 4px; }
+    .footer-brand-sub { font-size: 0.75rem; color: rgba(255,255,255,0.35); letter-spacing: 1px; margin-bottom: 16px; }
+    .footer-desc { font-size: 0.85rem; line-height: 1.7; max-width: 280px; }
+    .footer-powered {
+      display: inline-flex; align-items: center; gap: 8px; margin-top: 20px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 8px 14px; text-decoration: none;
+    }
+    .footer-powered-text { font-size: 0.72rem; color: rgba(255,255,255,0.45); }
+    .footer-powered-name { font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.75); }
+    .footer-col h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .footer-col ul li a { text-decoration: none; color: rgba(255,255,255,0.65); font-size: 0.875rem; transition: color 0.2s; }
+    .footer-col ul li a:hover { color: #fff; }
+    .footer-contact p { font-size: 0.85rem; margin-bottom: 8px; }
+    .footer-contact a { color: var(--blue-400); text-decoration: none; }
+    .footer-contact a:hover { color: #fff; }
+    .footer-bottom {
+      max-width: 1200px; margin: 0 auto;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 28px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: gap;
+      gap: 16px;
+    }
+    .footer-bottom-left { font-size: 0.8rem; }
+    .footer-bottom-left strong { color: #fff; font-size: 1rem; }
+    .footer-bottom-right { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .vayunex-cta { flex-direction: column; padding: 24px; }
+      .hero-stats { gap: 24px; }
+      nav { padding: 0 4%; }
+    }
+
+    /* ── SCROLL ANIMATIONS ── */
+    .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="navbar">
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-icon">Mx</div>
+      <div>
+        <div class="nav-logo-text">MedNex</div>
+        <div class="nav-logo-sub">PHARMACY ERP</div>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#trust">Reviews</a></li>
+      <li><a href="#vayunex">VayuNex</a></li>
+    </ul>
+    <a class="nav-cta" href="/login">Launch App →</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      GST-Compliant · Live Dashboard · Instant Invoicing
+    </div>
+    <h1 class="hero-title">
+      Smart Pharmacy<br/><span>Billing Made Simple</span>
+    </h1>
+    <p class="hero-sub">
+      MedNex is a complete Pharmacy Management & GST Billing System — from inventory and purchases to sales, invoicing, and real-time analytics. All in one place.
+    </p>
+    <div class="hero-actions">
+      <a href="/login" class="btn-primary">🚀 Open Dashboard</a>
+      <a href="#features" class="btn-secondary">Explore Features ↓</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-num">100%</div><div class="stat-label">GST Compliant</div></div>
+      <div class="stat"><div class="stat-num">A4 PDF</div><div class="stat-label">Instant Invoices</div></div>
+      <div class="stat"><div class="stat-num">Live</div><div class="stat-label">Dashboard Charts</div></div>
+      <div class="stat"><div class="stat-num">Multi</div><div class="stat-label">Payment Modes</div></div>
+    </div>
+    <div class="hero-scroll">
+      <svg width="24" height="24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <p class="section-label reveal">Everything You Need</p>
+      <h2 class="section-title reveal">Built for Modern Pharmacies</h2>
+      <p class="section-sub reveal">From a small medical shop to a multi-outlet pharmacy chain — MedNex handles it all with speed and accuracy.</p>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(21,101,192,0.1);">🧾</div>
+          <div class="feature-title">GST Sales Billing</div>
+          <div class="feature-desc">Generate CGST/SGST/IGST compliant invoices in seconds. Supports Walk-in and registered customer billing with batch tracking.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(46,125,50,0.1);">📦</div>
+          <div class="feature-title">Purchase Management</div>
+          <div class="feature-desc">Track supplier purchases with batch, expiry, MRP, PTR rate management. Supports multiple payment modes and auto-stock updates.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(245,127,23,0.1);">🏪</div>
+          <div class="feature-title">Smart Inventory</div>
+          <div class="feature-desc">Real-time stock tracking with low stock alerts, expiry warnings, and reorder level monitoring. Never run out of critical medicines.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(123,82,246,0.1);">📊</div>
+          <div class="feature-title">Live Dashboard</div>
+          <div class="feature-desc">Today's sales, purchases, profit, stock value — all live. Monthly charts showing Sales vs Purchase vs Profit trends.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(0,105,92,0.1);">🖨️</div>
+          <div class="feature-title">Printable A4 Invoices</div>
+          <div class="feature-desc">Professional A4 landscape invoice with GST summary, bank details, terms & conditions, and signature section. Print or save as PDF.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(198,40,40,0.1);">👥</div>
+          <div class="feature-title">Customer & Supplier CRM</div>
+          <div class="feature-desc">Manage customer & supplier profiles with GSTIN, DL number, credit limits, and payment history. Full ledger support.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(21,101,192,0.1);">📋</div>
+          <div class="feature-title">Reports & Analytics</div>
+          <div class="feature-desc">Detailed sales and purchase reports with date filters. Export to Excel. View profit trends and category-wise analysis.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(245,127,23,0.1);">💊</div>
+          <div class="feature-title">Medicine Master</div>
+          <div class="feature-desc">Complete medicine catalogue with HSN codes, GST slabs, generic names, rack management, and company-wise categorisation.</div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon" style="background:rgba(46,125,50,0.1);">🔐</div>
+          <div class="feature-title">Role-Based Access</div>
+          <div class="feature-desc">Admin, Pharmacist, and Cashier roles with granular permission control. Secure JWT authentication with session management.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="container">
+      <p class="section-label reveal">Simple & Fast</p>
+      <h2 class="section-title reveal">Up and Running in Minutes</h2>
+      <p class="section-sub reveal">MedNex is designed to be intuitive — no training required. Your pharmacist can start billing from day one.</p>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">1</div>
+          <div class="step-title">Setup Company</div>
+          <div class="step-desc">Add your pharmacy details, GSTIN, bank info, and drug license number from Settings.</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">2</div>
+          <div class="step-title">Add Medicines</div>
+          <div class="step-desc">Import your medicine catalogue with HSN codes, GST slabs, and batch-wise pricing.</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">3</div>
+          <div class="step-title">Record Purchases</div>
+          <div class="step-desc">Enter supplier invoices — batches, expiry, MRP, PTR — and stock updates automatically.</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">4</div>
+          <div class="step-title">Start Billing</div>
+          <div class="step-desc">Select customer, add medicines, apply discounts, and print a GST invoice in under 60 seconds.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT TICKER -->
+  <div class="ticker-section">
+    <p class="ticker-label">Also by VayuNex Solution</p>
+    <div style="overflow:hidden;padding:0 5%">
+      <div class="ticker-track">
+        <div class="ticker-item">💳 PayNex – Billing & Payments</div>
+        <div class="ticker-item">💎 Jwelnex – Jewellery ERP</div>
+        <div class="ticker-item">📱 SocialNex – Social Media Platform</div>
+        <div class="ticker-item">🏫 SchoolDost – Education Management</div>
+        <div class="ticker-item">📦 InventoryNex – Stock Management</div>
+        <div class="ticker-item">🤖 VayuNex Assist – AI Agent</div>
+        <div class="ticker-item">💳 PayNex – Billing & Payments</div>
+        <div class="ticker-item">💎 Jwelnex – Jewellery ERP</div>
+        <div class="ticker-item">📱 SocialNex – Social Media Platform</div>
+        <div class="ticker-item">🏫 SchoolDost – Education Management</div>
+        <div class="ticker-item">📦 InventoryNex – Stock Management</div>
+        <div class="ticker-item">🤖 VayuNex Assist – AI Agent</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VAYUNEX SECTION -->
+  <section id="vayunex">
+    <div class="vayunex-inner">
+      <div class="vayunex-header">
+        <div>
+          <div class="vayunex-logo-big">VAYUNEX</div>
+          <div class="vayunex-tagline">S O L U T I O N</div>
+        </div>
+        <div style="width:1px;height:60px;background:rgba(255,255,255,0.15);margin:0 10px"></div>
+        <div style="font-size:0.9rem;color:rgba(255,255,255,0.55);max-width:320px;line-height:1.6">
+          Product-led engineering firm · Chandigarh Tricity, India<br/>
+          Building & scaling enterprise SaaS products
+        </div>
+      </div>
+      <p class="vayunex-desc">
+        VayuNex Solution is not your typical IT agency. We're a <strong>product-led engineering firm</strong> based in the Chandigarh Tricity region, building and scaling our own suite of SaaS products while delivering custom software for industry partners. MedNex is one of our flagship healthcare solutions.
+      </p>
+      <div class="vayunex-services">
+        <div class="vservice">
+          <div class="vservice-icon">💻</div>
+          <div class="vservice-title">Software & Web Development</div>
+          <div class="vservice-desc">Full-stack web apps, e-commerce platforms, ERPs, and custom business software with modern tech stacks.</div>
+        </div>
+        <div class="vservice">
+          <div class="vservice-icon">🤖</div>
+          <div class="vservice-title">AI Solutions</div>
+          <div class="vservice-desc">AI-powered workflows, chatbots, VayuNex Assist (lead qualification & scheduling), and custom AI CRM integrations.</div>
+        </div>
+        <div class="vservice">
+          <div class="vservice-icon">📈</div>
+          <div class="vservice-title">Growth & Marketing</div>
+          <div class="vservice-desc">SEO, Google & Meta Ads, content marketing, and growth consulting to scale your digital presence.</div>
+        </div>
+        <div class="vservice">
+          <div class="vservice-icon">🏗️</div>
+          <div class="vservice-title">Virtual CTO</div>
+          <div class="vservice-desc">Technical strategy, architecture decisions, and implementation leadership for growing startups and businesses.</div>
+        </div>
+        <div class="vservice">
+          <div class="vservice-icon">👔</div>
+          <div class="vservice-title">Recruitment Services</div>
+          <div class="vservice-desc">End-to-end tech recruitment and staffing solutions — from sourcing to onboarding the right talent.</div>
+        </div>
+        <div class="vservice">
+          <div class="vservice-icon">🏥</div>
+          <div class="vservice-title">Healthcare Tech</div>
+          <div class="vservice-desc">Specialized healthcare clinic lead engines, patient CRM management, and appointment automation systems.</div>
+        </div>
+      </div>
+      <div class="vayunex-products">
+        <div class="vp-title">Our Product Ecosystem</div>
+        <div class="vp-list">
+          <div class="vp-chip">💊 MedNex</div>
+          <div class="vp-chip">💳 PayNex</div>
+          <div class="vp-chip">💎 Jwelnex</div>
+          <div class="vp-chip">📱 SocialNex</div>
+          <div class="vp-chip">🏫 SchoolDost</div>
+          <div class="vp-chip">📦 InventoryNex</div>
+          <div class="vp-chip">🤖 VayuNex Assist</div>
+        </div>
+      </div>
+      <div class="vayunex-cta">
+        <div class="vayunex-cta-text">
+          <h3>Need a custom solution for your business?</h3>
+          <p>Contact VayuNex Solution — we build what your industry demands.</p>
+        </div>
+        <a href="https://vayunexsolution.com" target="_blank" class="vayunex-cta-btn">Visit VayuNex Solution →</a>
+      </div>
+      <div class="engineered">⚡ Engineered in India · Built with precision · Powered by passion</div>
+    </div>
+  </section>
+
+  <!-- TRUST / TESTIMONIALS -->
+  <section id="trust">
+    <div class="container">
+      <p class="section-label reveal">Trusted by Pharmacies</p>
+      <h2 class="section-title reveal">What Our Users Say</h2>
+      <div class="trust-grid">
+        <div class="trust-card reveal">
+          <div class="trust-stars">★★★★★</div>
+          <p class="trust-quote">"MedNex completely replaced our manual register system. Invoicing is 10x faster and GST filing has become stress-free."</p>
+          <div class="trust-author">Rajesh Patel</div>
+          <div class="trust-role">Owner, Shree Medical Store, Ahmedabad</div>
+        </div>
+        <div class="trust-card reveal">
+          <div class="trust-stars">★★★★★</div>
+          <p class="trust-quote">"The live dashboard shows me today's profit at a glance. Expiry alerts have saved us from huge losses. Excellent system."</p>
+          <div class="trust-author">Dr. Sunita Sharma</div>
+          <div class="trust-role">Pharmacist, HealthPlus Pharmacy, Chandigarh</div>
+        </div>
+        <div class="trust-card reveal">
+          <div class="trust-stars">★★★★☆</div>
+          <p class="trust-quote">"Purchase management with batch tracking is brilliant. Stock updates automatically and reports are very detailed."</p>
+          <div class="trust-author">Mohit Gupta</div>
+          <div class="trust-role">Manager, CityMed Distributors, Delhi</div>
+        </div>
+        <div class="trust-card reveal">
+          <div class="trust-stars">★★★★★</div>
+          <p class="trust-quote">"VayuNex Solution team provided excellent support. MedNex was customised for our requirements within days. Highly recommended."</p>
+          <div class="trust-author">Priya Verma</div>
+          <div class="trust-role">Proprietor, Wellness Pharma, Mohali</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section id="cta-banner">
+    <div class="container" style="text-align:center">
+      <h2>Ready to Modernise Your Pharmacy?</h2>
+      <p>Join pharmacies across India using MedNex for faster billing, smarter inventory, and full GST compliance.</p>
+      <a href="/login" class="btn-white">Get Started — It's Free →</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <!-- Brand -->
+      <div>
+        <div class="footer-brand-name">MedNex</div>
+        <div class="footer-brand-sub">PHARMACY MANAGEMENT SYSTEM</div>
+        <p class="footer-desc">
+          A complete GST-compliant pharmacy billing and inventory management platform designed for Indian pharmacies. Fast, accurate, and reliable.
+        </p>
+        <a href="https://vayunexsolution.com" target="_blank" class="footer-powered">
+          <div>
+            <div class="footer-powered-text">Powered by</div>
+            <div class="footer-powered-name">VayuNex Solution</div>
+          </div>
+        </a>
+      </div>
+      <!-- Product -->
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How It Works</a></li>
+          <li><a href="/login">Sales Billing</a></li>
+          <li><a href="/login">Purchase Entry</a></li>
+          <li><a href="/login">Reports</a></li>
+          <li><a href="/login">Settings</a></li>
+        </ul>
+      </div>
+      <!-- Company -->
+      <div class="footer-col">
+        <h4>VayuNex</h4>
+        <ul>
+          <li><a href="https://vayunexsolution.com" target="_blank">About Us</a></li>
+          <li><a href="https://vayunexsolution.com" target="_blank">Services</a></li>
+          <li><a href="https://vayunexsolution.com" target="_blank">Products</a></li>
+          <li><a href="https://vayunexsolution.com" target="_blank">VayuNex Assist</a></li>
+          <li><a href="https://vayunexsolution.com" target="_blank">Careers</a></li>
+          <li><a href="https://vayunexsolution.com" target="_blank">Contact</a></li>
+        </ul>
+      </div>
+      <!-- Contact -->
+      <div class="footer-col footer-contact">
+        <h4>Contact</h4>
+        <p>🌐 <a href="https://vayunexsolution.com" target="_blank">vayunexsolution.com</a></p>
+        <p>📍 Chandigarh Tricity, India</p>
+        <p style="margin-top:20px;font-size:0.8rem;color:rgba(255,255,255,0.35)">
+          For business enquiries, custom pharmacy software, or technical support — reach us via our website.
+        </p>
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+          <span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 12px;font-size:0.75rem;color:rgba(255,255,255,0.5)">Engineered in India 🇮🇳</span>
+          <span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 12px;font-size:0.75rem;color:rgba(255,255,255,0.5)">GST Compliant</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="footer-bottom">
+      <div class="footer-bottom-left">
+        <strong>MedNex</strong><br/>
+        <span style="font-size:0.78rem;color:rgba(255,255,255,0.35)">© 2025 VayuNex Solution. All Rights Reserved.</span>
+      </div>
+      <div class="footer-bottom-right">
+        Engineered in India · Built with ❤️ by <a href="https://vayunexsolution.com" target="_blank" style="color:rgba(255,255,255,0.5);text-decoration:none">VayuNex Solution</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Navbar scroll effect
+    const nav = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    });
+
+    // Scroll reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    reveals.forEach(el => observer.observe(el));
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      });
+    });
+  </script>
+</body>
+</html>
