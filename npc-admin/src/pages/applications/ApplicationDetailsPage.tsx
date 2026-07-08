@@ -66,6 +66,7 @@ export default function ApplicationDetailsPage() {
   // New keys forms
   const [keyName, setKeyName] = useState('');
   const [keyEnv, setKeyEnv] = useState('production');
+  const [newKeyDetails, setNewKeyDetails] = useState<{ key: string, secret: string } | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookEnv, setWebhookEnv] = useState('production');
   const [domainName, setDomainName] = useState('');
@@ -172,6 +173,10 @@ export default function ApplicationDetailsPage() {
         body: JSON.stringify({ name: keyName, environment: keyEnv, scopes: ['user:read'] })
       });
       if (res.ok) {
+        const body = await res.json();
+        if (body.data && body.data.key) {
+          setNewKeyDetails({ key: body.data.key, secret: body.data.secret });
+        }
         toast.success('Generated new API Key successfully');
         setKeyName('');
         fetchDetails();
@@ -392,7 +397,57 @@ export default function ApplicationDetailsPage() {
       {/* Tab Panels */}
       <div className="space-y-4">
         {activeTab === 'keys' && (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="space-y-4">
+            {newKeyDetails && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-5 dark:border-indigo-900/50 dark:bg-indigo-950/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-indigo-900 dark:text-indigo-300">⚠️ New API Key Generated</h4>
+                  <button 
+                    onClick={() => setNewKeyDetails(null)} 
+                    className="text-xs text-secondary hover:text-primary"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                <p className="text-xs text-indigo-700 dark:text-indigo-400">
+                  Please copy this key and secret now. For security reasons, the secret will not be displayed again.
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-secondary uppercase block font-sans">API Key</span>
+                    <div className="flex items-center gap-2 rounded-lg border border-base bg-card px-3 py-1.5 font-mono text-xs text-primary">
+                      <span className="select-all break-all flex-1">{newKeyDetails.key}</span>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(newKeyDetails.key);
+                          toast.success('API Key copied to clipboard!');
+                        }}
+                        className="text-[10px] text-indigo-600 font-semibold hover:underline"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-secondary uppercase block font-sans">Client Secret</span>
+                    <div className="flex items-center gap-2 rounded-lg border border-base bg-card px-3 py-1.5 font-mono text-xs text-primary">
+                      <span className="select-all break-all flex-1">{newKeyDetails.secret}</span>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(newKeyDetails.secret);
+                          toast.success('Secret copied to clipboard!');
+                        }}
+                        className="text-[10px] text-indigo-600 font-semibold hover:underline"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid gap-6 md:grid-cols-3">
             {/* Keys Table */}
             <div className="md:col-span-2 space-y-4">
               <h3 className="text-base font-bold text-primary">Connected API keys</h3>
@@ -482,7 +537,8 @@ export default function ApplicationDetailsPage() {
               </form>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {activeTab === 'webhooks' && (
           <div className="grid gap-6 md:grid-cols-3">
