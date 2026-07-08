@@ -2,8 +2,18 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const existingTables = await queryInterface.showAllTables();
+    
+    const safeCreateTable = async (tableName, attributes) => {
+      if (!existingTables.includes(tableName)) {
+        await queryInterface.createTable(tableName, attributes);
+      } else {
+        console.log(`Table '${tableName}' already exists, skipping creation.`);
+      }
+    };
+
     // 1. plat_tenants
-    await queryInterface.createTable('plat_tenants', {
+    await safeCreateTable('plat_tenants', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       name: { type: Sequelize.STRING(200), allowNull: false },
@@ -16,7 +26,7 @@ module.exports = {
     });
 
     // 2. plat_businesses
-    await queryInterface.createTable('plat_businesses', {
+    await safeCreateTable('plat_businesses', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -28,7 +38,7 @@ module.exports = {
     });
 
     // 3. plat_branches
-    await queryInterface.createTable('plat_branches', {
+    await safeCreateTable('plat_branches', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -42,7 +52,7 @@ module.exports = {
     });
 
     // 4. plat_departments
-    await queryInterface.createTable('plat_departments', {
+    await safeCreateTable('plat_departments', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -55,7 +65,7 @@ module.exports = {
     });
 
     // 5. plat_platform_settings
-    await queryInterface.createTable('plat_platform_settings', {
+    await safeCreateTable('plat_platform_settings', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       key: { type: Sequelize.STRING(100), unique: true, allowNull: false },
       value: { type: Sequelize.TEXT },
@@ -65,7 +75,7 @@ module.exports = {
     });
 
     // 6. plat_tenant_settings
-    await queryInterface.createTable('plat_tenant_settings', {
+    await safeCreateTable('plat_tenant_settings', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
       key: { type: Sequelize.STRING(100), allowNull: false },
@@ -75,7 +85,7 @@ module.exports = {
     });
 
     // 7. plat_user_sessions
-    await queryInterface.createTable('plat_user_sessions', {
+    await safeCreateTable('plat_user_sessions', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       userId: { type: Sequelize.INTEGER, allowNull: false },
       deviceFingerprint: { type: Sequelize.STRING(255) },
@@ -88,7 +98,7 @@ module.exports = {
     });
 
     // 8. plat_refresh_tokens
-    await queryInterface.createTable('plat_refresh_tokens', {
+    await safeCreateTable('plat_refresh_tokens', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       userId: { type: Sequelize.INTEGER, allowNull: false },
       token: { type: Sequelize.TEXT, allowNull: false },
@@ -99,7 +109,7 @@ module.exports = {
     });
 
     // 9. plat_login_histories
-    await queryInterface.createTable('plat_login_histories', {
+    await safeCreateTable('plat_login_histories', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       userId: { type: Sequelize.INTEGER },
       emailUsed: { type: Sequelize.STRING(150), allowNull: false },
@@ -110,7 +120,7 @@ module.exports = {
     });
 
     // 10. plat_api_keys
-    await queryInterface.createTable('plat_api_keys', {
+    await safeCreateTable('plat_api_keys', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
       keyHash: { type: Sequelize.STRING(255), unique: true, allowNull: false },
@@ -122,7 +132,7 @@ module.exports = {
     });
 
     // 11. plat_password_resets
-    await queryInterface.createTable('plat_password_resets', {
+    await safeCreateTable('plat_password_resets', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       userId: { type: Sequelize.INTEGER, allowNull: false },
       tokenHash: { type: Sequelize.STRING(255), unique: true, allowNull: false },
@@ -133,7 +143,7 @@ module.exports = {
     });
 
     // 12. plat_subscriptions
-    await queryInterface.createTable('plat_subscriptions', {
+    await safeCreateTable('plat_subscriptions', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -146,7 +156,7 @@ module.exports = {
     });
 
     // 13. plat_licenses
-    await queryInterface.createTable('plat_licenses', {
+    await safeCreateTable('plat_licenses', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -161,7 +171,7 @@ module.exports = {
     });
 
     // 14. plat_features
-    await queryInterface.createTable('plat_features', {
+    await safeCreateTable('plat_features', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -172,7 +182,7 @@ module.exports = {
     });
 
     // 15. plat_limits
-    await queryInterface.createTable('plat_limits', {
+    await safeCreateTable('plat_limits', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
@@ -183,7 +193,7 @@ module.exports = {
     });
 
     // 16. plat_roles
-    await queryInterface.createTable('plat_roles', {
+    await safeCreateTable('plat_roles', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       name: { type: Sequelize.STRING(100), allowNull: false, unique: true },
@@ -192,7 +202,7 @@ module.exports = {
     });
 
     // 17. plat_permissions
-    await queryInterface.createTable('plat_permissions', {
+    await safeCreateTable('plat_permissions', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       uuid: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, allowNull: false, unique: true },
       name: { type: Sequelize.STRING(100), allowNull: false, unique: true },
@@ -201,13 +211,13 @@ module.exports = {
     });
 
     // 18. plat_role_permissions
-    await queryInterface.createTable('plat_role_permissions', {
+    await safeCreateTable('plat_role_permissions', {
       roleId: { type: Sequelize.INTEGER, primaryKey: true },
       permissionId: { type: Sequelize.INTEGER, primaryKey: true },
     });
 
     // 19. plat_platform_audits
-    await queryInterface.createTable('plat_platform_audits', {
+    await safeCreateTable('plat_platform_audits', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       userId: { type: Sequelize.INTEGER },
       action: { type: Sequelize.STRING(100), allowNull: false },
@@ -218,7 +228,7 @@ module.exports = {
     });
 
     // 20. plat_tenant_audits
-    await queryInterface.createTable('plat_tenant_audits', {
+    await safeCreateTable('plat_tenant_audits', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       tenantId: { type: Sequelize.INTEGER, allowNull: false },
       userId: { type: Sequelize.INTEGER },
