@@ -4,8 +4,14 @@ deployment:
     # 1. MedNex SaaS Deployment
     - /bin/cp -Rf backend/. /home/vayunexs/api.mednex.vayunexsolution.com/
     - /bin/cp -Rf frontend/dist/. /home/vayunexs/mednex.vayunexsolution.com/
+    - /bin/bash -c "cd /home/vayunexs/api.mednex.vayunexsolution.com && npm install --omit=dev --prefer-offline 2>&1 | tail -5"
+    - /bin/mkdir -p /home/vayunexs/api.mednex.vayunexsolution.com/tmp
+    - /bin/touch /home/vayunexs/api.mednex.vayunexsolution.com/tmp/restart.txt
 
     # 2. Nex Platform Core (NPC) Deployment
     - /bin/cp -Rf npc/backend/. /home/vayunexs/api.sdk.vayunexsolution.com/
     - /bin/cp -Rf npc-admin/dist/. /home/vayunexs/sdk.vayunexsolution.com/
+    - /bin/bash -c "cd /home/vayunexs/api.sdk.vayunexsolution.com && npm install --omit=dev --prefer-offline 2>&1 | tail -5"
+    - /bin/mkdir -p /home/vayunexs/api.sdk.vayunexsolution.com/tmp
+    - /bin/touch /home/vayunexs/api.sdk.vayunexsolution.com/tmp/restart.txt
 
