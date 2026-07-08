@@ -163,7 +163,7 @@ async function main() {
 
     // Read first lines
     const lines = fileBuffer.toString('utf-8').split('\n').slice(0, 10);
-    const hasHeader = lines.some(l => l.includes('MySQL dump') || l.includes('CREATE TABLE') || l.includes('INSERT INTO'));
+    const hasHeader = lines.some(l => l.toLowerCase().includes('dump') || l.includes('CREATE TABLE') || l.includes('INSERT INTO'));
 
     if (!hasHeader) {
       report.stage4.status = "FAILED";
