@@ -2,8 +2,10 @@ import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosReques
 
 let refreshPromise: Promise<string> | null = null;
 
+const isProd = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
 const api: AxiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: isProd ? 'https://api.sdk.vayunexsolution.com/api/v1' : '/api/v1',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

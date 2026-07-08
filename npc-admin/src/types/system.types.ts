@@ -78,4 +78,8 @@ export interface DashboardStats {
     platform: AuditLog[];
     tenant: AuditLog[];
   };
+  activity?: {
+    labels: string[];
+    data: number[];
+  };
 }

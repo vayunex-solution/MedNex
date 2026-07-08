@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Layers, Globe, Radio, CheckCircle, AlertTriangle, 
   ArrowRight, Download, Terminal, Settings2, Code, ShieldCheck, 
-  Compass, Laptop, Cpu, BookOpen, ExternalLink, HelpCircle 
+  Compass, Laptop, Cpu, BookOpen, ExternalLink
 } from 'lucide-react';
 import { toast } from '@/stores/ui.store';
 

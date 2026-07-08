@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Key, Globe, Radio, Settings2, BarChart2, ShieldAlert, 
-  Terminal, ShieldCheck, ChevronRight, RefreshCw, CheckCircle, 
-  Trash2, Shield, Plus, ArrowLeft, Play, Cpu, AlertTriangle
+  RefreshCw, Plus, ArrowLeft, Play, AlertTriangle
 } from 'lucide-react';
 import * as echarts from 'echarts';
 import { toast } from '@/stores/ui.store';
