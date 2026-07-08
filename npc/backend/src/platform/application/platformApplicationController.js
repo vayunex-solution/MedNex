@@ -447,6 +447,22 @@ const verifyConnectionEndpoint = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, result, 'Connection verified successfully');
 });
 
+// Telemetry Log Ingestion (APP-205)
+const ingestLogs = asyncHandler(async (req, res) => {
+  const app = req.npcApp;
+  const { environment, level, message, meta } = req.body;
+
+  const logRecord = await applicationLogRepository.create({
+    applicationId: app.id,
+    environment: environment || 'production',
+    level: level || 'info',
+    message: message || 'Log entry',
+    meta: meta ? (typeof meta === 'string' ? meta : JSON.stringify(meta)) : null,
+  });
+
+  return ApiResponse.success(res, logRecord, 'Telemetry log ingested successfully');
+});
+
 module.exports = {
   listApplications,
   createApplication,
@@ -474,4 +490,5 @@ module.exports = {
   getCapabilities,
   rotateSecretEndpoint,
   verifyConnectionEndpoint,
+  ingestLogs,
 };
