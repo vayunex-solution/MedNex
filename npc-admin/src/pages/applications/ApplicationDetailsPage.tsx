@@ -110,7 +110,7 @@ export default function ApplicationDetailsPage() {
       setDomains(domainsRes.ok ? (await domainsRes.json()).data || [] : []);
 
       // Telemetry logs
-      const logsRes = await fetch(`/api/v1/platform/applications/${uuid}/telemetry`, { headers });
+      const logsRes = await fetch(`/api/v1/platform/applications/${uuid}/logs`, { headers });
       setLogs(logsRes.ok ? (await logsRes.json()).data || [] : []);
 
     } catch {
