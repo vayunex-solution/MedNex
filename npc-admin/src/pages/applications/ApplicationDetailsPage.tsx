@@ -62,6 +62,7 @@ export default function ApplicationDetailsPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [testingConnection, setTestingConnection] = useState(false);
 
   // New keys forms
   const [keyName, setKeyName] = useState('');
@@ -279,6 +280,32 @@ export default function ApplicationDetailsPage() {
     }
   };
 
+  const handleTestConnection = async () => {
+    try {
+      setTestingConnection(true);
+      const res = await fetch(`/api/v1/platform/applications/${uuid}/connections/verify`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ type: 'application', itemUuid: '' })
+      });
+      if (res.ok) {
+        const body = await res.json();
+        if (body.data?.success) {
+          toast.success(body.data?.message || 'Connection verified successfully');
+        } else {
+          toast.error(body.data?.message || 'Connection test failed');
+        }
+      } else {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body?.message || 'Verification request failed');
+      }
+    } catch {
+      toast.error('Network error — verification failed');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
   // Secret Rotation (APP-208)
   const handleRotate = async (type: string, itemUuid: string) => {
     if (!confirm('Are you sure you want to rotate this credential? Existing integrations using the old secret will fail.')) return;
@@ -342,15 +369,28 @@ export default function ApplicationDetailsPage() {
           <p className="text-xs text-secondary mt-1">{app.description}</p>
         </div>
 
-        {/* Health Score Widget */}
-        <div className="flex items-center gap-3 border-l border-base pl-6">
-          <div className="text-right">
-            <span className="text-[10px] font-bold text-secondary uppercase block">Health Score</span>
-            <span className="text-2xl font-bold text-primary">{app.healthScore}%</span>
+        {/* Health Score & Test Connection Widget */}
+        <div className="flex items-center gap-6 border-l border-base pl-6">
+          <button
+            onClick={handleTestConnection}
+            disabled={testingConnection}
+            className={`flex items-center gap-1.5 rounded-lg border border-base bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors ${
+              testingConnection ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <RefreshCw size={14} className={testingConnection ? 'animate-spin' : ''} />
+            {testingConnection ? 'Verifying...' : 'Test Connection'}
+          </button>
+
+          <div className="flex items-center gap-3 border-l border-base pl-6">
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-secondary uppercase block">Health Score</span>
+              <span className="text-2xl font-bold text-primary">{app.healthScore}%</span>
+            </div>
+            <div className={`h-3 w-3 rounded-full animate-pulse ${
+              app.healthScore > 90 ? 'bg-emerald-500' : app.healthScore > 70 ? 'bg-amber-500' : 'bg-rose-500'
+            }`} />
           </div>
-          <div className={`h-3 w-3 rounded-full animate-pulse ${
-            app.healthScore > 90 ? 'bg-emerald-500' : app.healthScore > 70 ? 'bg-amber-500' : 'bg-rose-500'
-          }`} />
         </div>
       </div>
 

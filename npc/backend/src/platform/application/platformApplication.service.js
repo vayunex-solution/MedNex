@@ -211,6 +211,46 @@ class PlatformApplicationService {
     const app = await applicationRepository.findOne({ uuid: appUuid });
     if (!app) throw new NotFoundError('Application not found');
 
+    if (type === 'application') {
+      const targetUrl = app.productionUrl || app.stagingUrl || app.developmentUrl;
+      if (!targetUrl) {
+        throw new BadRequestError('Application does not have a configured URL');
+      }
+
+      try {
+        const pingUrl = targetUrl.endsWith('/') ? `${targetUrl}health` : `${targetUrl}/health`;
+        const start = Date.now();
+        const res = await fetch(pingUrl, {
+          method: 'GET',
+          headers: {
+            'X-NPC-Client-Id': app.uuid,
+            'X-NPC-Ping': 'true',
+            'User-Agent': 'NexPlatformCore-ConnectionVerifier/1.0'
+          },
+          signal: AbortSignal.timeout(5000)
+        });
+
+        const duration = Date.now() - start;
+        return {
+          success: res.ok,
+          status: res.ok ? 'connected' : 'failed',
+          statusCode: res.status,
+          message: res.ok 
+            ? `Successfully connected to application. Response time: ${duration}ms` 
+            : `Application returned status ${res.status}`,
+          timestamp: new Date()
+        };
+      } catch (err) {
+        return {
+          success: false,
+          status: 'disconnected',
+          statusCode: 500,
+          message: `Failed to connect to application: ${err.message}`,
+          timestamp: new Date()
+        };
+      }
+    }
+
     if (type === 'webhook') {
       const webhook = await applicationWebhookRepository.findOne({ uuid: itemUuid, applicationId: app.id });
       if (!webhook) throw new NotFoundError('Webhook not found');
