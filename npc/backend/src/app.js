@@ -20,12 +20,28 @@ const securityHeaders = require('./middleware/securityHeaders');
 app.use(securityHeaders);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'http://localhost:3100',
-  ],
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      // Production
+      'https://sdk.vayunexsolution.com',
+      'https://www.sdk.vayunexsolution.com',
+      // Env override
+      process.env.FRONTEND_URL,
+      // Local dev
+      'http://localhost:3100',
+      'http://localhost:5173',
+      'http://localhost:5174',
+    ].filter(Boolean);
+
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS: Origin ${origin} not allowed`), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-Idempotency-Key'],
 }));
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
