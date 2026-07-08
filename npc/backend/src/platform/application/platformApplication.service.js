@@ -48,6 +48,26 @@ class PlatformApplicationService {
     }
   }
 
+  validateManifest(manifestText) {
+    try {
+      const manifest = typeof manifestText === 'string' ? JSON.parse(manifestText) : manifestText;
+      const required = ['appName', 'version', 'sdkVersion', 'minNpcVersion', 'auth', 'endpoints'];
+      for (const field of required) {
+        if (!manifest[field]) {
+          throw new BadRequestError(`Invalid manifest: Missing required field "${field}"`);
+        }
+      }
+      if (!manifest.endpoints?.health || !manifest.endpoints?.provision) {
+        throw new BadRequestError('Invalid manifest: Endpoints must contain "health" and "provision"');
+      }
+      if (!manifest.auth?.type || !['client_credentials', 'api_key', 'hmac_sha256'].includes(manifest.auth.type)) {
+        throw new BadRequestError('Invalid manifest: Auth type must be client_credentials, api_key, or hmac_sha256');
+      }
+    } catch (e) {
+      throw new BadRequestError(`Invalid manifest schema format: ${e.message}`);
+    }
+  }
+
   /**
    * Onboard / Register new SaaS application (APP-201, APP-211, APP-213)
    */
@@ -59,11 +79,18 @@ class PlatformApplicationService {
 
     // Default manifest (APP-201)
     const manifest = payload.manifest || JSON.stringify({
+      appName: payload.name,
       version: '1.0.0',
-      capabilities: ['auth', 'billing'],
-      dependencies: [],
-      requiredScopes: ['user:read', 'tenant:read']
+      sdkVersion: '1.0.0',
+      minNpcVersion: '1.0.0',
+      auth: { type: 'client_credentials' },
+      endpoints: {
+        health: '/platform/health',
+        provision: '/platform/provision'
+      }
     });
+
+    this.validateManifest(manifest);
 
     const app = await applicationRepository.create({
       name: payload.name,
@@ -117,6 +144,10 @@ class PlatformApplicationService {
     const app = await applicationRepository.findOne({ uuid });
     if (!app) {
       throw new NotFoundError('Application not found');
+    }
+
+    if (payload.manifest) {
+      this.validateManifest(payload.manifest);
     }
 
     await applicationRepository.update(app.id, payload);

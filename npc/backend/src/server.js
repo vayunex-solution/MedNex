@@ -57,6 +57,10 @@ const start = async () => {
     // Start Outbox Dispatcher loop
     outboxDispatcher.start(5000);
 
+    // Start Operations Job Queue Worker
+    const operationJobEngine = require('./platform/application/operationJobEngine');
+    operationJobEngine.start(5000);
+
     app.listen(PORT, () => logger.info(`Nex Platform Core server running on port ${PORT}`));
   } catch (err) {
     logger.error('Failed to start server:', err);

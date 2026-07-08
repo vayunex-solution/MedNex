@@ -134,4 +134,12 @@ router.post('/applications/:uuid/domains', appCtrl.createDomain);
 router.post('/applications/:uuid/secrets/rotate', appCtrl.rotateSecretEndpoint);
 router.post('/applications/:uuid/connections/verify', appCtrl.verifyConnectionEndpoint);
 
+// Generic Operations Framework Routes
+router.post('/applications/:uuid/provision', appCtrl.provisionApplicationTenant);
+router.post('/applications/:uuid/sync', appCtrl.syncApplicationTenant);
+router.get('/applications/:uuid/operations/jobs', appCtrl.listOperationJobs);
+router.get('/applications/operations/jobs/:jobUuid', appCtrl.getOperationJobStatus);
+router.post('/applications/operations/jobs/:jobUuid/retry', appCtrl.retryOperationJob);
+
 module.exports = router;
+

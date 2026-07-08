@@ -64,6 +64,14 @@ export default function ApplicationDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [testingConnection, setTestingConnection] = useState(false);
 
+  // Operations/Provisioning States
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [provisionJobs, setProvisionJobs] = useState<any[]>([]);
+  const [selectedTenantUuid, setSelectedTenantUuid] = useState('');
+  const [selectedUserUuid, setSelectedUserUuid] = useState('');
+  const [provisioning, setProvisioning] = useState(false);
+
   // New keys forms
   const [keyName, setKeyName] = useState('');
   const [keyEnv, setKeyEnv] = useState('production');
@@ -113,6 +121,25 @@ export default function ApplicationDetailsPage() {
       // Telemetry logs
       const logsRes = await fetch(`/api/v1/platform/applications/${uuid}/logs`, { headers });
       setLogs(logsRes.ok ? (await logsRes.json()).data || [] : []);
+
+      // Fetch tenants, users, and operations jobs
+      const tenantsRes = await fetch('/api/v1/platform/tenants', { headers });
+      if (tenantsRes.ok) {
+        const tBody = await tenantsRes.json();
+        setTenants(tBody.data?.rows || tBody.data || []);
+      }
+
+      const usersRes = await fetch('/api/v1/platform/users', { headers });
+      if (usersRes.ok) {
+        const uBody = await usersRes.json();
+        setUsers(uBody.data?.rows || uBody.data || []);
+      }
+
+      const jobsRes = await fetch(`/api/v1/platform/applications/${uuid}/operations/jobs`, { headers });
+      if (jobsRes.ok) {
+        const jBody = await jobsRes.json();
+        setProvisionJobs(jBody.data || []);
+      }
 
     } catch {
       toast.error('Network error — could not reach the NPC backend.');
@@ -327,6 +354,58 @@ export default function ApplicationDetailsPage() {
     }
   };
 
+  const handleProvisionTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTenantUuid || !selectedUserUuid) {
+      toast.error('Please select both a tenant and an owner user');
+      return;
+    }
+
+    try {
+      setProvisioning(true);
+      const res = await fetch(`/api/v1/platform/applications/${uuid}/provision`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          tenantUuid: selectedTenantUuid,
+          ownerUserUuid: selectedUserUuid
+        })
+      });
+
+      if (res.ok) {
+        toast.success('Provisioning job successfully queued!');
+        setSelectedTenantUuid('');
+        setSelectedUserUuid('');
+        fetchDetails();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body?.message || 'Failed to queue provisioning job');
+      }
+    } catch {
+      toast.error('Network error — failed to trigger provisioning');
+    } finally {
+      setProvisioning(false);
+    }
+  };
+
+  const handleRetryJob = async (jobUuid: string) => {
+    try {
+      const res = await fetch(`/api/v1/platform/applications/operations/jobs/${jobUuid}/retry`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        toast.success('Job rescheduled for retry successfully!');
+        fetchDetails();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body?.message || 'Failed to reschedule job');
+      }
+    } catch {
+      toast.error('Network error — failed to retry job');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -401,6 +480,12 @@ export default function ApplicationDetailsPage() {
           className={`pb-3 border-b-2 transition-all ${activeTab === 'keys' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-secondary'}`}
         >
           API Keys
+        </button>
+        <button 
+          onClick={() => setActiveTab('provision')}
+          className={`pb-3 border-b-2 transition-all ${activeTab === 'provision' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-secondary'}`}
+        >
+          Tenant Provisioning
         </button>
         <button 
           onClick={() => setActiveTab('webhooks')}
@@ -804,6 +889,119 @@ export default function ApplicationDetailsPage() {
                   className="w-full rounded-lg bg-indigo-600 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
                 >
                   Add Domain
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'provision' && (
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="md:col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-primary">Operation & Provisioning Jobs</h3>
+                <button 
+                  onClick={fetchDetails} 
+                  className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                >
+                  <RefreshCw size={12} /> Refresh Queue
+                </button>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-base bg-card">
+                <table className="min-w-full divide-y divide-base">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] font-bold text-secondary uppercase tracking-wider text-left">
+                    <tr>
+                      <th className="px-4 py-2.5">Operation</th>
+                      <th className="px-4 py-2.5">Status</th>
+                      <th className="px-4 py-2.5">Retries</th>
+                      <th className="px-4 py-2.5">Last Error</th>
+                      <th className="px-4 py-2.5">Triggered At</th>
+                      <th className="px-4 py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-base text-xs text-secondary">
+                    {provisionJobs.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-secondary">
+                          No operations triggered yet for this application.
+                        </td>
+                      </tr>
+                    ) : (
+                      provisionJobs.map((job: any) => (
+                        <tr key={job.uuid}>
+                          <td className="px-4 py-3 font-semibold text-primary capitalize">{job.operationType}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                              job.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
+                              job.status === 'failed' || job.status === 'dead_letter' ? 'bg-rose-50 text-rose-700' :
+                              'bg-amber-50 text-amber-700'
+                            }`}>
+                              {job.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono">{job.retryCount} / {job.maxRetries}</td>
+                          <td className="px-4 py-3 break-all max-w-[200px]" title={job.lastError}>
+                            {job.lastError || '-'}
+                          </td>
+                          <td className="px-4 py-3">{new Date(job.createdAt).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">
+                            {(job.status === 'failed' || job.status === 'dead_letter') && (
+                              <button
+                                onClick={() => handleRetryJob(job.uuid)}
+                                className="text-[10px] bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded font-bold hover:bg-indigo-100 transition-colors"
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-base bg-card p-5 space-y-4 h-fit">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
+                <Plus size={16} /> Trigger Provisioning
+              </h3>
+              <form onSubmit={handleProvisionTenant} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-1">Select Tenant</label>
+                  <select
+                    required
+                    value={selectedTenantUuid}
+                    onChange={e => setSelectedTenantUuid(e.target.value)}
+                    className="w-full rounded-lg border border-base bg-slate-50 dark:bg-slate-900 px-3 py-1.5 text-xs text-primary focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="">-- Choose Tenant --</option>
+                    {tenants.map((t: any) => (
+                      <option key={t.uuid} value={t.uuid}>{t.name} ({t.slug})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-1">Select Owner User</label>
+                  <select
+                    required
+                    value={selectedUserUuid}
+                    onChange={e => setSelectedUserUuid(e.target.value)}
+                    className="w-full rounded-lg border border-base bg-slate-50 dark:bg-slate-900 px-3 py-1.5 text-xs text-primary focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="">-- Choose Owner User --</option>
+                    {users.map((u: any) => (
+                      <option key={u.uuid} value={u.uuid}>{u.name} ({u.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  disabled={provisioning}
+                  className="w-full rounded-lg bg-indigo-600 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-50"
+                >
+                  {provisioning ? 'Queuing Job...' : 'Provision Tenant'}
                 </button>
               </form>
             </div>

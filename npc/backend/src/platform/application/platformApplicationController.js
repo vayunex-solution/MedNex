@@ -463,6 +463,153 @@ const ingestLogs = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, logRecord, 'Telemetry log ingested successfully');
 });
 
+// Generic operations and provisioning endpoints
+const provisionApplicationTenant = asyncHandler(async (req, res) => {
+  const { uuid } = req.params;
+  const { tenantUuid, ownerUserUuid } = req.body;
+
+  const tenantRepository = require('../tenant/tenant.repository');
+  const userRepository = require('../identity/user.repository');
+  const businessRepository = require('../business/business.repository');
+  const branchRepository = require('../branch/branch.repository');
+  const operationJobRepository = require('./operationJob.repository');
+
+  const app = await applicationRepository.findOne({ uuid, isDeleted: false });
+  if (!app) throw new NotFoundError('Application not found');
+
+  const tenant = await tenantRepository.findOne({ uuid: tenantUuid, isDeleted: false });
+  if (!tenant) throw new NotFoundError('Tenant not found');
+
+  const owner = await userRepository.findOne({ uuid: ownerUserUuid, isDeleted: false });
+  if (!owner) throw new NotFoundError('Owner user not found');
+
+  const business = await businessRepository.findOne({ tenantId: tenant.id, isDeleted: false });
+  const branch = await branchRepository.findOne({ tenantId: tenant.id, isDeleted: false });
+
+  const payload = {
+    correlationId: crypto.randomUUID(),
+    tenantName: tenant.name,
+    slug: tenant.slug,
+    ownerName: owner.name,
+    ownerEmail: owner.email,
+    ownerPassword: 'TemporaryPassword@123',
+    ownerPhone: owner.phone || '',
+    timezone: 'Asia/Kolkata',
+    currency: 'INR',
+    locale: 'en-US'
+  };
+
+  const job = await operationJobRepository.create({
+    applicationId: app.id,
+    tenantId: tenant.id,
+    operationType: 'provision',
+    status: 'pending',
+    payload: JSON.stringify(payload),
+    maxRetries: 5
+  });
+
+  return ApiResponse.success(res, {
+    jobUuid: job.uuid,
+    status: job.status,
+    message: 'Provisioning job created and queued successfully'
+  }, 'Provisioning job initiated');
+});
+
+const syncApplicationTenant = asyncHandler(async (req, res) => {
+  const { uuid } = req.params;
+  const { tenantUuid } = req.body;
+
+  const tenantRepository = require('../tenant/tenant.repository');
+  const operationJobRepository = require('./operationJob.repository');
+
+  const app = await applicationRepository.findOne({ uuid, isDeleted: false });
+  if (!app) throw new NotFoundError('Application not found');
+
+  const tenant = await tenantRepository.findOne({ uuid: tenantUuid, isDeleted: false });
+  if (!tenant) throw new NotFoundError('Tenant not found');
+
+  const payload = {
+    correlationId: crypto.randomUUID(),
+    tenantUuid: tenant.uuid,
+    name: tenant.name,
+    status: tenant.status
+  };
+
+  const job = await operationJobRepository.create({
+    applicationId: app.id,
+    tenantId: tenant.id,
+    operationType: 'sync',
+    status: 'pending',
+    payload: JSON.stringify(payload),
+    maxRetries: 5
+  });
+
+  return ApiResponse.success(res, {
+    jobUuid: job.uuid,
+    status: job.status,
+    message: 'Synchronization job created and queued successfully'
+  }, 'Synchronization job initiated');
+});
+
+const getOperationJobStatus = asyncHandler(async (req, res) => {
+  const { jobUuid } = req.params;
+  const operationJobRepository = require('./operationJob.repository');
+
+  const job = await operationJobRepository.findOne({ uuid: jobUuid });
+  if (!job) throw new NotFoundError('Operation job not found');
+
+  return ApiResponse.success(res, {
+    uuid: job.uuid,
+    operationType: job.operationType,
+    status: job.status,
+    retryCount: job.retryCount,
+    maxRetries: job.maxRetries,
+    lastError: job.lastError,
+    completedAt: job.completedAt
+  }, 'Operation job status retrieved successfully');
+});
+
+const listOperationJobs = asyncHandler(async (req, res) => {
+  const { uuid } = req.params;
+  const operationJobRepository = require('./operationJob.repository');
+
+  const app = await applicationRepository.findOne({ uuid, isDeleted: false });
+  if (!app) throw new NotFoundError('Application not found');
+
+  const jobs = await operationJobRepository.model.findAll({
+    where: { applicationId: app.id },
+    order: [['createdAt', 'DESC']],
+    limit: 50
+  });
+
+  return ApiResponse.success(res, jobs, 'Operation jobs retrieved successfully');
+});
+
+const retryOperationJob = asyncHandler(async (req, res) => {
+  const { jobUuid } = req.params;
+  const operationJobRepository = require('./operationJob.repository');
+
+  const job = await operationJobRepository.findOne({ uuid: jobUuid });
+  if (!job) throw new NotFoundError('Operation job not found');
+
+  if (job.status !== 'failed' && job.status !== 'dead_letter') {
+    throw new BadRequestError('Only failed or dead letter queue jobs can be retried');
+  }
+
+  await job.update({
+    status: 'pending',
+    retryCount: 0,
+    nextAttemptAt: new Date(),
+    lastError: null
+  });
+
+  return ApiResponse.success(res, {
+    uuid: job.uuid,
+    status: job.status,
+    message: 'Job status reset to pending and rescheduled'
+  }, 'Job queued for retry');
+});
+
 module.exports = {
   listApplications,
   createApplication,
@@ -491,4 +638,10 @@ module.exports = {
   rotateSecretEndpoint,
   verifyConnectionEndpoint,
   ingestLogs,
+  provisionApplicationTenant,
+  syncApplicationTenant,
+  getOperationJobStatus,
+  listOperationJobs,
+  retryOperationJob,
 };
+

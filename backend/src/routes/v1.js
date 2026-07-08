@@ -12,6 +12,12 @@ router.get('/platform/health', healthCtrl.checkHealth);
 // Tenant Provisioning
 router.post('/platform/tenants/signup', tenantCtrl.signup);
 
+// Federated Platform Operations
+const verifyNpcRequest = require('../middleware/verifyNpcRequest');
+const provisionCtrl = require('../platform/provision/provisionController');
+router.post('/platform/provision', verifyNpcRequest, provisionCtrl.provision);
+router.post('/platform/sync', verifyNpcRequest, provisionCtrl.sync);
+
 // Auth Engine V1
 router.use('/auth', authV1Routes);
 

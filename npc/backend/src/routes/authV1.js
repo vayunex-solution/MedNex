@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const authCtrl = require('../platform/identity/authController');
+const jwksCtrl = require('../platform/identity/jwksController');
 const { authenticate } = require('../middleware/auth');
 
 // Public authentication routes
@@ -11,6 +12,9 @@ router.post('/select-workspace', authCtrl.selectWorkspace);
 router.post('/refresh', authCtrl.refresh);
 router.post('/password-reset/request', authCtrl.requestPasswordReset);
 router.post('/password-reset/reset', authCtrl.resetPassword);
+router.get('/jwks', jwksCtrl.getJwks);
+router.post('/introspect', jwksCtrl.introspectToken);
+
 
 // Protected session routes
 router.post('/logout', authenticate, authCtrl.logout);

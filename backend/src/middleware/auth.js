@@ -10,7 +10,45 @@ const authenticate = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) return unauthorized(res, 'Access token required');
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'nex_jwt_secret_default_key_9988');
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'nex_jwt_secret_default_key_9988');
+    } catch (localErr) {
+      try {
+        const introspectResponse = await fetch('https://api.sdk.vayunexsolution.com/api/v1/auth/introspect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+          signal: AbortSignal.timeout(5000)
+        });
+        if (introspectResponse.ok) {
+          const introspectResult = await introspectResponse.json();
+          if (introspectResult.active) {
+            req.user = {
+              id: introspectResult.user.id,
+              email: introspectResult.user.email,
+              role: introspectResult.user.role,
+              tenantId: introspectResult.tenantId,
+              businessId: introspectResult.businessId,
+              branchId: introspectResult.branchId,
+            };
+            
+            const RequestContext = require('../shared/core/context');
+            RequestContext.userId = introspectResult.user.id;
+            RequestContext.tenantId = introspectResult.tenantId;
+            RequestContext.branchId = introspectResult.branchId;
+            RequestContext.businessId = introspectResult.businessId;
+            RequestContext.permissions = [introspectResult.user.role];
+            RequestContext.features = ['billing', 'inventory'];
+
+            return next();
+          }
+        }
+      } catch (npcErr) {
+        // Fallback failed
+      }
+      throw localErr;
+    }
     
     // Check if it is a V1 Token (contains sessionId)
     if (decoded.sessionId) {
