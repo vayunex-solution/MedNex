@@ -77,9 +77,11 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
-    await sequelize.sync({ alter: false, force: false });
-    logger.info('Database synchronized');
+    // await sequelize.sync({ alter: false, force: false });
+    logger.info('Database synchronized (skipped)');
     await seedAdmin();
+    const outboxDispatcher = require('./shared/events/outboxDispatcher');
+    outboxDispatcher.start(5000);
     app.listen(PORT, () => logger.info(`MedNex server running on port ${PORT}`));
   } catch (err) {
     logger.error('Failed to start server:', err);

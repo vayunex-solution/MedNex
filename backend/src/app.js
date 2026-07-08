@@ -19,6 +19,8 @@ const apiRoutes = require('./routes/index');
 const app = express();
 
 // ─── Security ─────────────────────────────────────────────────────────────────
+const securityHeaders = require('./middleware/securityHeaders');
+app.use(securityHeaders);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -29,6 +31,15 @@ app.use(cors({
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500, message: 'Too many requests' });
 app.use('/api/', limiter);
+
+// ─── Request Context & Identification Pipeline ─────────────────────────────────
+const requestId = require('./middleware/requestId');
+const contextMiddleware = require('./middleware/context');
+const requestLogger = require('./middleware/requestLogger');
+
+app.use(requestId);
+app.use(contextMiddleware);
+app.use(requestLogger);
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 app.use(morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) } }));
@@ -44,6 +55,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+const v1Routes = require('./routes/v1');
+const v2Routes = require('./routes/v2');
+app.use('/api/v1', v1Routes);
+app.use('/api/v2', v2Routes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api', masterRoutes);
 app.use('/api', apiRoutes);

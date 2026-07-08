@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Nex Platform Core - Tenant API
+  version: 1.0.0
+paths:
+  /api/v1/platform/tenants:
+    get:
+      summary: List tenants
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantInput'
+      responses:
+        '201':
+          description: Created
+components:
+  schemas:
+    TenantInput:
+      type: object
+      required:
+        - tenantName
+        - slug
+        - ownerName
+        - ownerEmail
+        - ownerPassword
+      properties:
+        tenantName:
+          type: string
+        slug:
+          type: string
+        ownerName:
+          type: string
+        ownerEmail:
+          type: string
+          format: email
+        ownerPassword:
+          type: string

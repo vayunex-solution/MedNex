@@ -1,0 +1,67 @@
+openapi: 3.1.0
+info:
+  title: Nex Platform Core - Branch API
+  version: 1.0.0
+paths:
+  /api/v1/platform/branches:
+    get:
+      summary: List branches
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: tenantUuid
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: businessUuid
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchInput'
+      responses:
+        '201':
+          description: Created
+components:
+  schemas:
+    BranchInput:
+      type: object
+      required:
+        - tenantUuid
+        - businessUuid
+        - name
+      properties:
+        tenantUuid:
+          type: string
+          format: uuid
+        businessUuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        branchCode:
+          type: string

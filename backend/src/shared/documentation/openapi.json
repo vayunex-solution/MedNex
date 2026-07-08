@@ -1,0 +1,57 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nex Platform Core (NPC) OpenAPI Specs",
+    "description": "Enterprise-grade reusable Vayunex platform backend specification rules.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/platform/capabilities": {
+      "get": {
+        "summary": "Expose platform metadata capabilities contract",
+        "description": "Returns platform versions, modules, permissions catalog, and SDK dependencies.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/businesses": {
+      "get": {
+        "summary": "List businesses",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create and provision new business",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/platform/tenants": {
+      "get": {
+        "summary": "List tenants",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create and provision new tenant",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    }
+  }
+}

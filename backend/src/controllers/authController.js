@@ -23,6 +23,29 @@ const login = async (req, res) => {
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return unauthorized(res, 'Invalid credentials');
 
+  // Enforce tenant-level suspension checks
+  if (user.role !== 'super_admin') {
+    const memberships = await User.sequelize.query(
+      `SELECT m.id, t.isActive, t.status 
+       FROM plat_user_memberships m
+       JOIN plat_tenants t ON m.tenantId = t.id
+       WHERE m.userId = :userId AND m.status = 'active'`,
+      {
+        replacements: { userId: user.id },
+        type: User.sequelize.QueryTypes.SELECT
+      }
+    );
+
+    if (!memberships || memberships.length === 0) {
+      return unauthorized(res, 'User has no active organization memberships');
+    }
+
+    const inactiveTenant = memberships.find(m => !m.isActive || m.status !== 'active');
+    if (inactiveTenant) {
+      return unauthorized(res, 'Tenant account is suspended or inactive');
+    }
+  }
+
   const { accessToken, refreshToken } = generateTokens(user);
   await user.update({ refreshToken });
 
@@ -40,10 +63,28 @@ const refreshToken = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findOne({ where: { id: decoded.id, refreshToken: token, isDeleted: false } });
     if (!user) return unauthorized(res, 'Invalid refresh token');
+
+    // Enforce tenant suspension checks on token refresh
+    if (user.role !== 'super_admin') {
+      const [membership] = await User.sequelize.query(
+        `SELECT m.id, t.isActive, t.status 
+         FROM plat_user_memberships m
+         JOIN plat_tenants t ON m.tenantId = t.id
+         WHERE m.userId = :userId AND m.status = 'active' LIMIT 1`,
+        {
+          replacements: { userId: user.id },
+          type: User.sequelize.QueryTypes.SELECT
+        }
+      );
+      if (!membership || !membership.isActive || membership.status !== 'active') {
+        return unauthorized(res, 'Tenant account is suspended or inactive');
+      }
+    }
+
     const tokens = generateTokens(user);
     await user.update({ refreshToken: tokens.refreshToken });
     return success(res, tokens, 'Token refreshed');
-  } catch {
+  } catch (err) {
     return unauthorized(res, 'Invalid or expired refresh token');
   }
 };
