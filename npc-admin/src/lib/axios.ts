@@ -48,7 +48,7 @@ api.interceptors.response.use(
             if (!refreshToken) throw new Error('No refresh token');
 
             const response = await axios.post<{ data: { accessToken: string; refreshToken: string } }>(
-              '/api/v1/auth/refresh',
+              (isProd ? 'https://api.sdk.vayunexsolution.com' : '') + '/api/v1/auth/refresh',
               { refreshToken }
             );
 
