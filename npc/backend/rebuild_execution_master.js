@@ -477,4 +477,17 @@ async function main() {
   printReportAndExit(true);
 }
 
+function printReportAndExit(allPass) {
+  console.log("\n=== EXECUTION AUDIT REPORT ===");
+  console.log(JSON.stringify(report, null, 2));
+  
+  if (allPass) {
+    console.log("\nREADY_FOR_STAGE_08=true");
+    process.exit(0);
+  } else {
+    console.log("\nREADY_FOR_STAGE_08=false");
+    process.exit(1);
+  }
+}
+
 main();
