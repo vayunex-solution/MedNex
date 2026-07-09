@@ -508,6 +508,14 @@ const provisionApplicationTenant = asyncHandler(async (req, res) => {
     maxRetries: 5
   });
 
+  // Trigger OperationJobEngine immediately to run the job
+  const operationJobEngine = require('./operationJobEngine');
+  setImmediate(() => {
+    operationJobEngine.processJobs().catch(err => {
+      console.error('[NPC Control Plane] Error running operation job engine after queueing:', err);
+    });
+  });
+
   return ApiResponse.success(res, {
     jobUuid: job.uuid,
     status: job.status,
@@ -542,6 +550,14 @@ const syncApplicationTenant = asyncHandler(async (req, res) => {
     status: 'pending',
     payload: JSON.stringify(payload),
     maxRetries: 5
+  });
+
+  // Trigger OperationJobEngine immediately to run the job
+  const operationJobEngine = require('./operationJobEngine');
+  setImmediate(() => {
+    operationJobEngine.processJobs().catch(err => {
+      console.error('[NPC Control Plane] Error running operation job engine after queueing:', err);
+    });
   });
 
   return ApiResponse.success(res, {
@@ -601,6 +617,14 @@ const retryOperationJob = asyncHandler(async (req, res) => {
     retryCount: 0,
     nextAttemptAt: new Date(),
     lastError: null
+  });
+
+  // Trigger OperationJobEngine immediately to run the job
+  const operationJobEngine = require('./operationJobEngine');
+  setImmediate(() => {
+    operationJobEngine.processJobs().catch(err => {
+      console.error('[NPC Control Plane] Error running operation job engine after queueing:', err);
+    });
   });
 
   return ApiResponse.success(res, {
