@@ -18,10 +18,6 @@ const apiRoutes = require('./routes/index');
 
 const app = express();
 
-// ─── Security ─────────────────────────────────────────────────────────────────
-const securityHeaders = require('./middleware/securityHeaders');
-app.use(securityHeaders);
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = [
@@ -37,6 +33,11 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 }));
+
+const securityHeaders = require('./middleware/securityHeaders');
+app.use(securityHeaders);
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+// Duplicate block removed
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500, message: 'Too many requests' });
