@@ -109,6 +109,30 @@ const update = async (req, res) => {
     delete data.password;
   }
 
+  // Use raw SQL for status updates to avoid Sequelize ORM column mismatch
+  if (data.status) {
+    await sequelize.query(
+      'UPDATE users SET status = ?, updatedAt = NOW() WHERE id = ?',
+      { replacements: [data.status, record.id] }
+    );
+    // Also sync membership status for suspension
+    if (data.status === 'suspended' && req.user?.tenantId) {
+      await UserMembership.update(
+        { status: 'suspended' },
+        { where: { userId: record.id, tenantId: req.user.tenantId } }
+      );
+    } else if (data.status === 'active' && req.user?.tenantId) {
+      await UserMembership.update(
+        { status: 'active' },
+        { where: { userId: record.id, tenantId: req.user.tenantId } }
+      );
+    }
+    return success(res, { id: record.id, status: data.status }, 'Updated successfully');
+  }
+
+  // For non-status updates, use ORM but remove problematic fields
+  delete data.status;
+  delete data.isActive;
   await record.update(data);
   const json = record.toJSON();
   delete json.password;
@@ -148,7 +172,7 @@ const remove = async (req, res) => {
 };
 
 const listAll = async (req, res) => {
-  const where = { isDeleted: false, isActive: true };
+  const where = { isDeleted: false };
 
   // Tenant Isolation: Non-super_admins only see users belonging to their tenant
   if (req.user && req.user.role !== 'super_admin' && req.user.tenantId) {
