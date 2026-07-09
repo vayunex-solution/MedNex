@@ -19,19 +19,10 @@ const apiRoutes = require('./routes/index');
 const app = express();
 
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = [
-      'https://mednex.vayunexsolution.com',
-      'http://localhost:5173'
-    ];
-    if (!origin || allowed.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-NPC-Client-Id', 'X-NPC-Signature', 'X-NPC-Timestamp', 'X-NPC-Nonce', 'X-NPC-Version', 'X-Correlation-ID']
 }));
 
 const securityHeaders = require('./middleware/securityHeaders');
