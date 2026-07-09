@@ -4,6 +4,27 @@ const jwt = require('jsonwebtoken');
 const { unauthorized, forbidden } = require('../helpers/response');
 const { User } = require('../models');
 
+/**
+ * Helper: resolve local MedNex membership for a user by email.
+ * Used when NPC returns its own tenantId which differs from MedNex tenantId.
+ */
+async function resolveLocalMembership(email, fallbackUserId) {
+  try {
+    const [localRows] = await User.sequelize.query(
+      'SELECT id FROM users WHERE email = ? AND isDeleted = 0 LIMIT 1',
+      { replacements: [email] }
+    );
+    const localUserId = localRows.length > 0 ? localRows[0].id : fallbackUserId;
+
+    const userMembershipRepository = require('../platform/identity/userMembership.repository');
+    const membership = await userMembershipRepository.findOne({ userId: localUserId, status: 'active' });
+
+    return { localUserId, membership };
+  } catch (e) {
+    return { localUserId: fallbackUserId, membership: null };
+  }
+}
+
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -24,20 +45,30 @@ const authenticate = async (req, res, next) => {
         if (introspectResponse.ok) {
           const introspectResult = await introspectResponse.json();
           if (introspectResult.active) {
+            // NPC tenantId is from NPC DB — resolve local MedNex tenantId via email
+            const { localUserId, membership } = await resolveLocalMembership(
+              introspectResult.user.email,
+              introspectResult.user.id
+            );
+
+            const localTenantId = membership ? membership.tenantId : null;
+            const localBusinessId = membership ? membership.businessId : null;
+            const localBranchId = membership ? membership.branchId : null;
+
             req.user = {
-              id: introspectResult.user.id,
+              id: localUserId,
               email: introspectResult.user.email,
               role: introspectResult.user.role,
-              tenantId: introspectResult.tenantId,
-              businessId: introspectResult.businessId,
-              branchId: introspectResult.branchId,
+              tenantId: localTenantId,
+              businessId: localBusinessId,
+              branchId: localBranchId,
             };
-            
+
             const RequestContext = require('../shared/core/context');
-            RequestContext.userId = introspectResult.user.id;
-            RequestContext.tenantId = introspectResult.tenantId;
-            RequestContext.branchId = introspectResult.branchId;
-            RequestContext.businessId = introspectResult.businessId;
+            RequestContext.userId = localUserId;
+            RequestContext.tenantId = localTenantId;
+            RequestContext.branchId = localBranchId;
+            RequestContext.businessId = localBusinessId;
             RequestContext.permissions = [introspectResult.user.role];
             RequestContext.features = ['billing', 'inventory'];
 
