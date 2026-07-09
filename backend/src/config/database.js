@@ -27,4 +27,38 @@ const sequelize = new Sequelize(
   }
 );
 
+// Global Hooks for Tenant Scoping (RLS)
+sequelize.addHook('beforeFind', function(options) {
+  const RequestContext = require('../shared/core/context');
+  
+  if (this && this.rawAttributes && this.rawAttributes.tenantId && RequestContext.tenantId) {
+    options.where = options.where || {};
+    
+    // Only enforce scope if tenantId filter is not explicitly set by the query
+    if (options.where.tenantId === undefined) {
+      options.where.tenantId = RequestContext.tenantId;
+    }
+  }
+});
+
+sequelize.addHook('beforeCreate', (instance) => {
+  const RequestContext = require('../shared/core/context');
+  
+  if (instance.constructor.rawAttributes.tenantId && RequestContext.tenantId) {
+    instance.tenantId = RequestContext.tenantId;
+  }
+});
+
+sequelize.addHook('beforeBulkCreate', (instances) => {
+  const RequestContext = require('../shared/core/context');
+  
+  if (RequestContext.tenantId) {
+    for (const instance of instances) {
+      if (instance.constructor.rawAttributes.tenantId) {
+        instance.tenantId = RequestContext.tenantId;
+      }
+    }
+  }
+});
+
 module.exports = sequelize;

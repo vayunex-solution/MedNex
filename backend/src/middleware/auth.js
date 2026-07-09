@@ -109,17 +109,25 @@ const authenticate = async (req, res, next) => {
       return unauthorized(res, 'User account is suspended or inactive');
     }
 
-    req.user = { id: user.id, name: user.name, email: user.email, role: user.role };
-    
-    // Set RequestContext values dynamically for downstream service layers
-    const RequestContext = require('../shared/core/context');
-    
     // Try to get user membership, but don't fail if it doesn't exist
     let userMembership = null;
     try {
       const userMembershipRepository = require('../platform/identity/userMembership.repository');
       userMembership = await userMembershipRepository.findOne({ userId: user.id, status: 'active' });
     } catch (e) { /* ignore membership lookup errors */ }
+
+    req.user = { 
+      id: user.id, 
+      name: user.name, 
+      email: user.email, 
+      role: user.role,
+      tenantId: userMembership ? userMembership.tenantId : null,
+      businessId: userMembership ? userMembership.businessId : null,
+      branchId: userMembership ? userMembership.branchId : null,
+    };
+    
+    // Set RequestContext values dynamically for downstream service layers
+    const RequestContext = require('../shared/core/context');
     
     RequestContext.userId = user.id;
     RequestContext.tenantId = userMembership ? userMembership.tenantId : null;

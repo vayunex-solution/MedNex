@@ -8,20 +8,7 @@ const CashBankEntry = require('./financial/CashBankEntry');
 const JournalVoucher = require('./financial/JournalVoucher');
 const JournalVoucherDetail = require('./financial/JournalVoucherDetail');
 
-const User = sequelize.define('User', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  uuid: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, allowNull: false, unique: true },
-  name: { type: DataTypes.STRING(150), allowNull: false },
-  email: { type: DataTypes.STRING(150), allowNull: false, unique: true },
-  password: { type: DataTypes.STRING(255), allowNull: false },
-  role: { type: DataTypes.ENUM('super_admin','admin','pharmacist','cashier'), defaultValue: 'cashier' },
-  phone: { type: DataTypes.STRING(20) },
-  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-  refreshToken: { type: DataTypes.TEXT },
-  createdBy: { type: DataTypes.INTEGER },
-  updatedBy: { type: DataTypes.INTEGER },
-  isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
-}, { tableName: 'users' });
+const User = require('../platform/user/user.model');
 
 
 // ─── Company ──────────────────────────────────────────────────────────────────
@@ -56,6 +43,7 @@ const Company = sequelize.define('Company', {
 // ─── Store ────────────────────────────────────────────────────────────────────
 const Store = sequelize.define('Store', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(150), allowNull: false },
   address: { type: DataTypes.TEXT },
   phone: { type: DataTypes.STRING(20) },
@@ -68,6 +56,7 @@ const Store = sequelize.define('Store', {
 // ─── Rack ─────────────────────────────────────────────────────────────────────
 const Rack = sequelize.define('Rack', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(100), allowNull: false },
   storeId: { type: DataTypes.INTEGER, references: { model: 'stores', key: 'id' } },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
@@ -136,6 +125,7 @@ const HsnCode = sequelize.define('HsnCode', {
 // ─── MedicineCategory ─────────────────────────────────────────────────────────
 const MedicineCategory = sequelize.define('MedicineCategory', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(150), allowNull: false },
   description: { type: DataTypes.TEXT },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
@@ -147,6 +137,7 @@ const MedicineCategory = sequelize.define('MedicineCategory', {
 // ─── MedicineCompany ──────────────────────────────────────────────────────────
 const MedicineCompany = sequelize.define('MedicineCompany', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
   address: { type: DataTypes.TEXT },
   phone: { type: DataTypes.STRING(20) },
@@ -160,6 +151,7 @@ const MedicineCompany = sequelize.define('MedicineCompany', {
 // ─── Medicine ─────────────────────────────────────────────────────────────────
 const Medicine = sequelize.define('Medicine', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
   genericName: { type: DataTypes.STRING(200) },
   companyId: { type: DataTypes.INTEGER, references: { model: 'medicine_companies', key: 'id' } },
@@ -186,6 +178,7 @@ const Medicine = sequelize.define('Medicine', {
 // ─── Customer ─────────────────────────────────────────────────────────────────
 const Customer = sequelize.define('Customer', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
   phone: { type: DataTypes.STRING(20) },
   mobile: { type: DataTypes.STRING(20) },
@@ -206,6 +199,7 @@ const Customer = sequelize.define('Customer', {
 // ─── Supplier ─────────────────────────────────────────────────────────────────
 const Supplier = sequelize.define('Supplier', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
   gstin: { type: DataTypes.STRING(20) },
   phone: { type: DataTypes.STRING(20) },
@@ -228,6 +222,7 @@ const Supplier = sequelize.define('Supplier', {
 // ─── Doctor ───────────────────────────────────────────────────────────────────
 const Doctor = sequelize.define('Doctor', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
   qualification: { type: DataTypes.STRING(100) },
   specialization: { type: DataTypes.STRING(150) },
@@ -244,6 +239,7 @@ const Doctor = sequelize.define('Doctor', {
 // ─── Batch ────────────────────────────────────────────────────────────────────
 const Batch = sequelize.define('Batch', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   medicineId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicines', key: 'id' } },
   batchNo: { type: DataTypes.STRING(100), allowNull: false },
   expiryDate: { type: DataTypes.DATEONLY, allowNull: false },
@@ -260,6 +256,7 @@ const Batch = sequelize.define('Batch', {
 // ─── PurchaseInvoice ──────────────────────────────────────────────────────────
 const PurchaseInvoice = sequelize.define('PurchaseInvoice', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   invoiceNo: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   supplierId: { type: DataTypes.INTEGER, references: { model: 'suppliers', key: 'id' } },
   invoiceDate: { type: DataTypes.DATEONLY, allowNull: false },
@@ -301,6 +298,7 @@ const PurchaseItem = sequelize.define('PurchaseItem', {
 // ─── SaleInvoice ──────────────────────────────────────────────────────────────
 const SaleInvoice = sequelize.define('SaleInvoice', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   invoiceNo: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   customerId: { type: DataTypes.INTEGER, references: { model: 'customers', key: 'id' } },
   doctorId: { type: DataTypes.INTEGER, references: { model: 'doctors', key: 'id' } },
@@ -355,6 +353,7 @@ const SaleItem = sequelize.define('SaleItem', {
 // ─── StockAdjustment ──────────────────────────────────────────────────────────
 const StockAdjustment = sequelize.define('StockAdjustment', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  tenantId: { type: DataTypes.INTEGER, allowNull: true },
   medicineId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicines', key: 'id' } },
   batchId: { type: DataTypes.INTEGER, references: { model: 'batches', key: 'id' } },
   adjustmentType: { type: DataTypes.ENUM('increase','decrease','damage','transfer'), defaultValue: 'increase' },
