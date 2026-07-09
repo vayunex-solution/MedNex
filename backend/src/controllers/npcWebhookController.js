@@ -51,6 +51,18 @@ const handleNpcWebhook = async (req, res) => {
       }
     }
 
+    // Handle password sync events from NPC
+    if (event === 'user.password_changed') {
+      const email = data.user?.email || data.email;
+      const newPasswordHash = data.passwordHash || data.password || data.user?.password;
+      if (email && newPasswordHash) {
+        await User.sequelize.query(
+          "UPDATE users SET password = ? WHERE email = ? AND isDeleted = 0",
+          { replacements: [newPasswordHash, email] }
+        );
+      }
+    }
+
     return res.json({ success: true, message: `Event ${event} processed` });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Webhook processing failed' });
