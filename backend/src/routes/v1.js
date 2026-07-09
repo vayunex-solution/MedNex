@@ -18,6 +18,11 @@ const provisionCtrl = require('../platform/provision/provisionController');
 router.post('/platform/provision', verifyNpcRequest, provisionCtrl.provision);
 router.post('/platform/sync', verifyNpcRequest, provisionCtrl.sync);
 
+// NPC User Lifecycle Webhook — NPC calls this to sync user status (suspend/activate)
+const { handleNpcWebhook } = require('../controllers/npcWebhookController');
+router.post('/npc/webhook', handleNpcWebhook);
+
+
 // Auth Engine V1
 router.use('/auth', authV1Routes);
 

@@ -51,6 +51,17 @@ const authenticate = async (req, res, next) => {
               introspectResult.user.id
             );
 
+            // Also check local user status — NPC suspension must reflect in MedNex
+            try {
+              const [statusRows] = await User.sequelize.query(
+                'SELECT status FROM users WHERE id = ? AND isDeleted = 0 LIMIT 1',
+                { replacements: [localUserId] }
+              );
+              if (statusRows.length > 0 && statusRows[0].status && statusRows[0].status !== 'active') {
+                return unauthorized(res, 'User account is suspended or inactive');
+              }
+            } catch (statusErr) { /* ignore, proceed */ }
+
             const localTenantId = membership ? membership.tenantId : null;
             const localBusinessId = membership ? membership.businessId : null;
             const localBranchId = membership ? membership.branchId : null;
@@ -74,6 +85,7 @@ const authenticate = async (req, res, next) => {
 
             return next();
           }
+
         }
       } catch (npcErr) {
         // Fallback failed
