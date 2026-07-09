@@ -1,1 +1,0 @@
-import{d as t}from"./index-C8rsVl_f.js";const r={async getHealth(){return(await t.get("/platform/health")).data}};export{r as h};
