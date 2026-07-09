@@ -126,6 +126,43 @@ export default function UserDetailPage() {
             </Button>
           </div>
         </div>
+
+        {/* Direct Password Reset Section */}
+        <div className="mt-4 pt-4 border-t border-base flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-semibold text-secondary mb-1">Set New Password Directly</label>
+            <input 
+              type="password" 
+              placeholder="Enter new password" 
+              id="new-direct-password"
+              className="w-full px-3 py-1.5 text-sm bg-base border border-base rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const input = document.getElementById('new-direct-password') as HTMLInputElement;
+              const val = input?.value;
+              if (!val) {
+                toast.error('Please enter a password');
+                return;
+              }
+              if (val.length < 6) {
+                toast.error('Password must be at least 6 characters');
+                return;
+              }
+              try {
+                await userService.resetPassword(uuid!, val);
+                toast.success('Password changed successfully');
+                if (input) input.value = '';
+              } catch (e: any) {
+                toast.error(getErrorMessage(e));
+              }
+            }}
+          >
+            Change Password
+          </Button>
+        </div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
