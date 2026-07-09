@@ -256,6 +256,11 @@ class PlatformTenantService {
         businesses: businessesCount,
         branches: branchesCount,
       },
+      businessCount: businessesCount,
+      branchCount: branchesCount,
+      userCount: usersCount,
+      activeUserCount: usersCount,
+      subscriptionStatus: subscription ? subscription.status : null,
       database: 'Operational',
       storage: '0.12 GB (Operational)',
     };
