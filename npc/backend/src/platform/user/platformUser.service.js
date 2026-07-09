@@ -590,21 +590,35 @@ class PlatformUserService extends BaseService {
         passwordResetRequired: false,
       }, { transaction: t });
 
-      const event = new PasswordChangedEvent(
-        RequestContext.userId,
-        RequestContext.requestId,
-        RequestContext.correlationId,
-        user.uuid
-      );
+      let event;
+      try {
+        event = new PasswordChangedEvent(
+          RequestContext.userId || 'system',
+          RequestContext.requestId || null,
+          RequestContext.correlationId || null,
+          user.uuid
+        );
+      } catch (e) {
+        event = {
+          eventName: 'PasswordChanged',
+          serialize: () => JSON.stringify({ userUuid: user.uuid })
+        };
+      }
 
-      await Outbox.create({
-        eventName: event.eventName,
-        payload: event.serialize(),
-        status: 'pending',
-      }, { transaction: t });
+      try {
+        await Outbox.create({
+          eventName: event.eventName,
+          payload: event.serialize(),
+          status: 'pending',
+        }, { transaction: t });
+      } catch (outboxErr) {
+        logger.error('Failed to create Outbox event for PasswordChanged:', outboxErr);
+      }
 
       await t.commit();
-      this._triggerEventDispatch();
+      try {
+        this._triggerEventDispatch();
+      } catch (dispatchErr) { /* ignore event loop failures */ }
 
       auditService.logPlatformAction(
         RequestContext.userId,
