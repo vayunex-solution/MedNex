@@ -19,11 +19,11 @@ module.exports = (req, res, next) => {
   // 6. Permissions-Policy
   res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), payment=()');
 
-  // 7. Cross-Origin-Opener-Policy (COOP)
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  // 7. Cross-Origin-Opener-Policy (COOP) - Disabled to allow standard cross-domain operations
+  // res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
 
-  // 8. Cross-Origin-Embedder-Policy (COEP)
-  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  // 8. Cross-Origin-Embedder-Policy (COEP) - Disabled to allow standard cross-domain operations
+  // res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
 
   // 9. Cross-Origin-Resource-Policy (CORP)
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
