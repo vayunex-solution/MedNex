@@ -174,6 +174,16 @@ const SalesBilling: React.FC = () => {
       setSavedInvoice(res.data.data);
       enqueueSnackbar('Invoice saved successfully!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
+      setRows([]); 
+      setCustomer(null); 
+      setPaymentMode('Cash'); 
+      setPaidAmount(0); 
+      setChequeNo(''); 
+      setBankName(''); 
+      setTransactionRef(''); 
+      setNotes(''); 
+      setDiscountType('amount'); 
+      setDiscountValue(0);
     },
     onError: () => enqueueSnackbar('Error saving invoice', { variant: 'error' }),
   });

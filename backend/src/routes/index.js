@@ -55,11 +55,17 @@ router.get('/reports/profit', authenticate, reportCtrl.getProfitReport);
 router.get('/reports/customer-ledger', authenticate, reportCtrl.getCustomerLedger);
 router.get('/reports/supplier-ledger', authenticate, reportCtrl.getSupplierLedger);
 router.get('/reports/item-ledger', authenticate, reportCtrl.getItemLedger);
+router.get('/reports/cash-book', authenticate, reportCtrl.getCashBook);
+router.get('/reports/bank-book', authenticate, reportCtrl.getBankBook);
+router.get('/reports/journal-book', authenticate, reportCtrl.getJournalBook);
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 router.get('/dashboard/stats', authenticate, dashboardCtrl.getStats);
 router.get('/dashboard/sales-chart', authenticate, dashboardCtrl.getMonthlySalesChart);
 router.get('/dashboard/purchase-chart', authenticate, dashboardCtrl.getMonthlyPurchaseChart);
 router.get('/dashboard/recent-sales', authenticate, dashboardCtrl.getRecentSales);
+
+// ─── Finance ──────────────────────────────────────────────────────────────────
+router.use('/finance', require('./financeRoutes'));
 
 module.exports = router;

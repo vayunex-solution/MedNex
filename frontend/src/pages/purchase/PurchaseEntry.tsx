@@ -24,6 +24,9 @@ interface PurchaseRow {
   ptr: number;
   rate: number;
   discount: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
   gstRate: number;
   gstAmount: number;
   amount: number;
@@ -53,7 +56,7 @@ const PurchaseEntry: React.FC = () => {
   const suppliers = (suppliersData?.data?.data as Supplier[] || []);
   const medicines = (medicinesData?.data?.data as Medicine[] || []);
 
-  const addRow = () => setRows((prev) => [...prev, { medicineId: 0, batchNo: '', expiryDate: '', qty: 1, freeQty: 0, mrp: 0, ptr: 0, rate: 0, discount: 0, gstRate: 0, gstAmount: 0, amount: 0 }]);
+  const addRow = () => setRows((prev) => [...prev, { medicineId: 0, batchNo: '', expiryDate: '', qty: 1, freeQty: 0, mrp: 0, ptr: 0, rate: 0, discount: 0, cgst: 0, sgst: 0, igst: 0, gstRate: 0, gstAmount: 0, amount: 0 }]);
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
   const updateRow = (index: number, field: string, value: unknown) => {
@@ -61,8 +64,12 @@ const PurchaseEntry: React.FC = () => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       const r = updated[index];
+      r.gstRate = (Number(r.cgst) || 0) + (Number(r.sgst) || 0) + (Number(r.igst) || 0);
       const taxable = r.rate * r.qty * (1 - r.discount / 100);
-      updated[index].gstAmount = taxable * (r.gstRate / 100);
+      const cgstAmt = taxable * ((Number(r.cgst) || 0) / 100);
+      const sgstAmt = taxable * ((Number(r.sgst) || 0) / 100);
+      const igstAmt = taxable * ((Number(r.igst) || 0) / 100);
+      updated[index].gstAmount = cgstAmt + sgstAmt + igstAmt;
       updated[index].amount = taxable + updated[index].gstAmount;
       return updated;
     });
@@ -72,11 +79,17 @@ const PurchaseEntry: React.FC = () => {
     if (!med) return;
     setRows((prev) => {
       const updated = [...prev];
-      const gstRate = (med.gstSlab?.cgst || 0) + (med.gstSlab?.sgst || 0);
-      updated[index] = { ...updated[index], medicineId: med.id, medicineName: med.name, mrp: med.mrp || 0, rate: med.purchaseRate || 0, ptr: med.purchaseRate || 0, gstRate };
+      const cgstRate = isInterState ? 0 : Number(med.gstSlab?.cgst || 0);
+      const sgstRate = isInterState ? 0 : Number(med.gstSlab?.sgst || 0);
+      const igstRate = isInterState ? Number(med.gstSlab?.igst || (Number(med.gstSlab?.cgst || 0) + Number(med.gstSlab?.sgst || 0))) : 0;
+      const gstRate = cgstRate + sgstRate + igstRate;
+      updated[index] = { ...updated[index], medicineId: med.id, medicineName: med.name, mrp: med.mrp || 0, rate: med.purchaseRate || 0, ptr: med.purchaseRate || 0, cgst: cgstRate, sgst: sgstRate, igst: igstRate, gstRate };
       const r = updated[index];
       const taxable = r.rate * r.qty * (1 - r.discount / 100);
-      updated[index].gstAmount = taxable * (gstRate / 100);
+      const cgstAmt = taxable * (r.cgst / 100);
+      const sgstAmt = taxable * (r.sgst / 100);
+      const igstAmt = taxable * (r.igst / 100);
+      updated[index].gstAmount = cgstAmt + sgstAmt + igstAmt;
       updated[index].amount = taxable + updated[index].gstAmount;
       return updated;
     });
@@ -91,6 +104,9 @@ const PurchaseEntry: React.FC = () => {
       enqueueSnackbar('Purchase saved successfully!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       setRows([]); setSupplier(null); setSupplierInvoiceNo('');
+      setInvoiceDate(new Date().toISOString().split('T')[0]);
+      setPaymentMode('Credit');
+      setNotes('');
     },
     onError: () => enqueueSnackbar('Error saving purchase', { variant: 'error' }),
   });
@@ -159,7 +175,14 @@ const PurchaseEntry: React.FC = () => {
                       <TableCell sx={{ minWidth: 80 }}>PTR</TableCell>
                       <TableCell sx={{ minWidth: 80 }}>Rate</TableCell>
                       <TableCell sx={{ minWidth: 70 }}>Disc%</TableCell>
-                      <TableCell sx={{ minWidth: 70 }}>{isInterState ? 'IGST%' : 'GST%'}</TableCell>
+                      {isInterState ? (
+                        <TableCell sx={{ minWidth: 70 }}>IGST%</TableCell>
+                      ) : (
+                        <>
+                          <TableCell sx={{ minWidth: 70 }}>SGST%</TableCell>
+                          <TableCell sx={{ minWidth: 70 }}>CGST%</TableCell>
+                        </>
+                      )}
                       <TableCell sx={{ minWidth: 90 }}>GST Amt</TableCell>
                       <TableCell sx={{ minWidth: 100 }}>Amount</TableCell>
                       <TableCell></TableCell>
@@ -184,9 +207,16 @@ const PurchaseEntry: React.FC = () => {
                         <TableCell><TextField size="small" type="number" sx={{ width: 75 }} value={row.ptr} onChange={(e) => updateRow(idx, 'ptr', parseFloat(e.target.value) || 0)} /></TableCell>
                         <TableCell><TextField size="small" type="number" sx={{ width: 75 }} value={row.rate} onChange={(e) => updateRow(idx, 'rate', parseFloat(e.target.value) || 0)} /></TableCell>
                         <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.discount} onChange={(e) => updateRow(idx, 'discount', parseFloat(e.target.value) || 0)} /></TableCell>
-                        <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.gstRate} onChange={(e) => updateRow(idx, 'gstRate', parseFloat(e.target.value) || 0)} /></TableCell>
-                        <TableCell><Typography variant="body2" fontWeight={600}>₹{row.gstAmount.toFixed(2)}</Typography></TableCell>
-                        <TableCell><Typography variant="body2" fontWeight={700} color="primary.main">₹{row.amount.toFixed(2)}</Typography></TableCell>
+                        {isInterState ? (
+                          <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.igst || 0} onChange={(e) => updateRow(idx, 'igst', parseFloat(e.target.value) || 0)} /></TableCell>
+                        ) : (
+                          <>
+                            <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.sgst || 0} onChange={(e) => updateRow(idx, 'sgst', parseFloat(e.target.value) || 0)} /></TableCell>
+                            <TableCell><TextField size="small" type="number" sx={{ width: 65 }} value={row.cgst || 0} onChange={(e) => updateRow(idx, 'cgst', parseFloat(e.target.value) || 0)} /></TableCell>
+                          </>
+                        )}
+                        <TableCell><Typography variant="body2" fontWeight={600}>₹{(row.gstAmount || 0).toFixed(2)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" fontWeight={700} color="primary.main">₹{(row.amount || 0).toFixed(2)}</Typography></TableCell>
                         <TableCell><IconButton size="small" color="error" onClick={() => removeRow(idx)}><Delete fontSize="small" /></IconButton></TableCell>
                       </TableRow>
                     ))}

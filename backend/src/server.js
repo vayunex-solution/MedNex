@@ -9,67 +9,57 @@ const bcrypt = require('bcryptjs');
 const PORT = process.env.PORT || 5000;
 
 const seedAdmin = async () => {
-  const { User, Company, GstSlab, Unit } = require('./models');
+  // Use raw SQL queries to bypass Sequelize model mapping bugs during startup
+  const [users] = await sequelize.query('SELECT * FROM users WHERE role = "super_admin" LIMIT 1');
+  const admin = users[0];
   
-  // Self-healing: Check if a super admin already exists
-  const admin = await User.findOne({ where: { role: 'super_admin' } });
   if (admin) {
     if (admin.email !== 'admin@mednex.com') {
-      admin.email = 'admin@mednex.com';
-      await admin.save();
+      await sequelize.query('UPDATE users SET email = "admin@mednex.com" WHERE id = ?', {
+        replacements: [admin.id]
+      });
       logger.info('Admin email updated to admin@mednex.com');
     }
   } else {
-    // If not, create one with an explicit ID to bypass auto_increment issues
-    await User.create({
-      id: 1,
-      name: 'Super Admin',
-      email: 'admin@mednex.com',
-      password: await bcrypt.hash('Admin@123', 12),
-      role: 'super_admin',
-      isActive: true,
-    });
-    logger.info('Default admin user created with ID 1: admin@mednex.com / Admin@123');
+    const hash = await bcrypt.hash('admin@123', 12);
+    // Insert with UUID and timestamps
+    await sequelize.query(
+      'INSERT INTO users (id, name, email, password, role, isActive, uuid, createdAt, updatedAt) VALUES (1, "Super Admin", "admin@mednex.com", ?, "super_admin", 1, UUID(), NOW(), NOW())',
+      { replacements: [hash] }
+    );
+    logger.info('Default admin user created with ID 1: admin@mednex.com / admin@123');
   }
 
-  const companyExists = await Company.findOne();
-  if (!companyExists) {
-    await Company.create({
-      id: 1, // Explicit ID to bypass auto_increment issues
-      name: 'MedNex Pharmacy',
-      gstin: '29AABCU9603R1ZX',
-      phone: '9876543210',
-      email: 'info@medibillpro.com',
-      address: '123, Main Street, Bangalore',
-      city: 'Bangalore',
-      state: 'Karnataka',
-      pincode: '560001',
-      invoicePrefix: 'INV',
-      purchasePrefix: 'PUR',
-    });
+  const [companies] = await sequelize.query('SELECT * FROM companies LIMIT 1');
+  if (companies.length === 0) {
+    await sequelize.query(
+      `INSERT INTO companies (id, name, gstin, phone, email, address, city, state, pincode, invoicePrefix, purchasePrefix, createdAt, updatedAt) 
+       VALUES (1, "MedNex Pharmacy", "29AABCU9603R1ZX", "9876543210", "info@medibillpro.com", "123, Main Street, Bangalore", "Bangalore", "Karnataka", "560001", "INV", "PUR", NOW(), NOW())`
+    );
+    logger.info('Default company created with ID 1');
   }
-  const gstExists = await GstSlab.findOne();
-  if (!gstExists) {
-    await GstSlab.bulkCreate([
-      { slab: '0%', cgst: 0, sgst: 0, igst: 0 },
-      { slab: '5%', cgst: 2.5, sgst: 2.5, igst: 5 },
-      { slab: '12%', cgst: 6, sgst: 6, igst: 12 },
-      { slab: '18%', cgst: 9, sgst: 9, igst: 18 },
-      { slab: '28%', cgst: 14, sgst: 14, igst: 28 },
-    ]);
+  const [gstRows] = await sequelize.query('SELECT id FROM gst_slabs LIMIT 1');
+  if (gstRows.length === 0) {
+    await sequelize.query(`INSERT INTO gst_slabs (slab, cgst, sgst, igst, createdAt, updatedAt) VALUES
+      ('0%', 0, 0, 0, NOW(), NOW()),
+      ('5%', 2.5, 2.5, 5, NOW(), NOW()),
+      ('12%', 6, 6, 12, NOW(), NOW()),
+      ('18%', 9, 9, 18, NOW(), NOW()),
+      ('28%', 14, 14, 28, NOW(), NOW())`);
+    logger.info('Default GST slabs seeded');
   }
-  const unitExists = await Unit.findOne();
-  if (!unitExists) {
-    await Unit.bulkCreate([
-      { name: 'Tablet', shortName: 'TAB' },
-      { name: 'Capsule', shortName: 'CAP' },
-      { name: 'Syrup', shortName: 'SYP' },
-      { name: 'Injection', shortName: 'INJ' },
-      { name: 'Cream', shortName: 'CRM' },
-      { name: 'Ointment', shortName: 'OIN' },
-      { name: 'Drops', shortName: 'DRP' },
-      { name: 'Strip', shortName: 'STR' },
-    ]);
+  const [unitRows] = await sequelize.query('SELECT id FROM units LIMIT 1');
+  if (unitRows.length === 0) {
+    await sequelize.query(`INSERT INTO units (name, shortName, createdAt, updatedAt) VALUES
+      ('Tablet', 'TAB', NOW(), NOW()),
+      ('Capsule', 'CAP', NOW(), NOW()),
+      ('Syrup', 'SYP', NOW(), NOW()),
+      ('Injection', 'INJ', NOW(), NOW()),
+      ('Cream', 'CRM', NOW(), NOW()),
+      ('Ointment', 'OIN', NOW(), NOW()),
+      ('Drops', 'DRP', NOW(), NOW()),
+      ('Strip', 'STR', NOW(), NOW())`);
+    logger.info('Default units seeded');
   }
 };
 
@@ -77,8 +67,10 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
-    // await sequelize.sync({ alter: false, force: false });
-    logger.info('Database synchronized (skipped)');
+    // NOTE: sync({ alter: true }) removed — it was running 100s of ALTER TABLE queries on every
+    // startup because we are connected to the LIVE production DB. Schema changes should be done
+    // manually via migrations, not on every boot.
+    logger.info('Database connection verified (sync disabled)');
     await seedAdmin();
     const outboxDispatcher = require('./shared/events/outboxDispatcher');
     outboxDispatcher.start(5000);

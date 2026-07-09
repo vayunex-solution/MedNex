@@ -6,7 +6,7 @@ const sequelize = require('../../config/database');
 const UserMembership = sequelize.define('UserMembership', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
   uuid: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, allowNull: false, unique: true },
-  userId: { type: DataTypes.STRING(191), allowNull: false },
+  userId: { type: DataTypes.INTEGER, allowNull: false },
   tenantId: { type: DataTypes.BIGINT, allowNull: false },
   businessId: { type: DataTypes.BIGINT, allowNull: false },
   branchId: { type: DataTypes.BIGINT, allowNull: false },

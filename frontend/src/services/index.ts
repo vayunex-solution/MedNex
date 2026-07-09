@@ -80,6 +80,17 @@ export const reportService = {
   getCustomerLedger: (params?: Record<string, unknown>) => api.get('/reports/customer-ledger', { params }),
   getSupplierLedger: (params?: Record<string, unknown>) => api.get('/reports/supplier-ledger', { params }),
   getItemLedger: (params?: Record<string, unknown>) => api.get('/reports/item-ledger', { params }),
+  getCashBook: (params?: Record<string, unknown>) => api.get('/reports/cash-book', { params }),
+  getBankBook: (params?: Record<string, unknown>) => api.get('/reports/bank-book', { params }),
+  getJournalBook: (params?: Record<string, unknown>) => api.get('/reports/journal-book', { params }),
+};
+
+// ─── Finance ──────────────────────────────────────────────────────────────────
+export const financeService = {
+  getCashBank: (params?: Record<string, unknown>) => api.get('/finance/cash-bank', { params }),
+  createCashBank: (data: unknown) => api.post('/finance/cash-bank', data),
+  getJournal: (params?: Record<string, unknown>) => api.get('/finance/journal', { params }),
+  createJournal: (data: unknown) => api.post('/finance/journal', data),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

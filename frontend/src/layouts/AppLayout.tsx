@@ -61,6 +61,12 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: 'Finance', icon: <AccountBalance />, children: [
+      { label: 'Cash/Bank Entry', icon: <Receipt />, path: '/finance/cash-bank' },
+      { label: 'Journal Voucher', icon: <BusinessCenter />, path: '/finance/journal' },
+    ],
+  },
+  {
     label: 'Reports', icon: <Assessment />, children: [
       { label: 'Sales Report', icon: <TrendingUp />, path: '/reports/sales' },
       { label: 'Purchase Report', icon: <ShoppingCart />, path: '/reports/purchase' },
@@ -69,6 +75,9 @@ const navItems: NavItem[] = [
       { label: 'Customer Ledger', icon: <People />, path: '/reports/customer-ledger' },
       { label: 'Supplier Ledger', icon: <Store />, path: '/reports/supplier-ledger' },
       { label: 'Item Ledger', icon: <Inventory />, path: '/reports/item-ledger' },
+      { label: 'Cash Book', icon: <AccountBalance />, path: '/reports/cash-book' },
+      { label: 'Bank Book', icon: <AccountBalance />, path: '/reports/bank-book' },
+      { label: 'Journal Book', icon: <BusinessCenter />, path: '/reports/journal-book' },
     ],
   },
   { label: 'Settings', icon: <Settings />, path: '/settings' },

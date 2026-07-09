@@ -24,6 +24,9 @@ import PurchaseEntry from './pages/purchase/PurchaseEntry';
 import SalesBilling from './pages/sales/SalesBilling';
 import { CurrentStock, ExpiryStock, BatchWiseStock } from './pages/stock/StockPages';
 import { SalesReport, PurchaseReport, GstReport, ProfitReport, CustomerLedger, SupplierLedger, ItemLedger } from './pages/reports/Reports';
+import { CashBook, BankBook, JournalBook } from './pages/finance/Books';
+import CashBankEntry from './pages/finance/CashBankEntry';
+import JournalVoucher from './pages/finance/JournalVoucher';
 import Settings from './pages/settings/Settings';
 
 const queryClient = new QueryClient({
@@ -72,6 +75,9 @@ const AppContent: React.FC = () => {
               <Route path="stock/batch-wise" element={<BatchWiseStock />} />
               <Route path="stock/expiry" element={<ExpiryStock type="expiry" />} />
               <Route path="stock/near-expiry" element={<ExpiryStock type="near-expiry" />} />
+              {/* Finance */}
+              <Route path="finance/cash-bank" element={<CashBankEntry />} />
+              <Route path="finance/journal" element={<JournalVoucher />} />
               {/* Reports */}
               <Route path="reports/sales" element={<SalesReport />} />
               <Route path="reports/purchase" element={<PurchaseReport />} />
@@ -80,6 +86,9 @@ const AppContent: React.FC = () => {
               <Route path="reports/customer-ledger" element={<CustomerLedger />} />
               <Route path="reports/supplier-ledger" element={<SupplierLedger />} />
               <Route path="reports/item-ledger" element={<ItemLedger />} />
+              <Route path="reports/cash-book" element={<CashBook />} />
+              <Route path="reports/bank-book" element={<BankBook />} />
+              <Route path="reports/journal-book" element={<JournalBook />} />
               {/* Settings */}
               <Route path="settings" element={<Settings />} />
             </Route>

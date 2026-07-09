@@ -7,12 +7,13 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { FileDownload, Assessment, Print } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
+import { FileDownload, Assessment, Print, Cancel as CancelIcon } from '@mui/icons-material';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import * as XLSX from 'xlsx';
 import { useReactToPrint } from 'react-to-print';
-import { reportService, customerService, supplierService, medicineService, saleService, companyService } from '../../services';
+import { useSnackbar } from 'notistack';
+import { reportService, customerService, supplierService, medicineService, saleService, companyService, purchaseService } from '../../services';
 import PrintableInvoice from '../../components/invoice/PrintableInvoice';
 
 const formatCurrency = (v: number | string) => `₹${Number(v || 0).toFixed(2)}`;
@@ -71,6 +72,22 @@ export const SalesReport: React.FC = () => {
   const { data: companyRes } = useQuery({ queryKey: ['company-details'], queryFn: () => companyService.get() });
   const company = companyRes?.data?.data || null;
 
+  const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
+
+  const handleCancelSale = async (id: number) => {
+    if (!window.confirm('Are you sure you want to cancel this sale? This action will restore the stock.')) return;
+    try {
+      await saleService.cancel(id);
+      enqueueSnackbar('Sale cancelled successfully', { variant: 'success' });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['report-customer-ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['report-item-ledger'] });
+    } catch (err: any) {
+      enqueueSnackbar(err.response?.data?.message || 'Failed to cancel sale', { variant: 'error' });
+    }
+  };
+
   const printRef = useRef<HTMLDivElement>(null);
   const [printInvoice, setPrintInvoice] = useState<unknown>(null);
   const handlePrintAction = useReactToPrint({ contentRef: printRef });
@@ -97,9 +114,14 @@ export const SalesReport: React.FC = () => {
     { key: 'paymentMode', label: 'Payment' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Action', align: 'right' as const, format: (_: unknown, row: Record<string, unknown>) => (
-      <IconButton size="small" color="primary" onClick={() => handlePrint(row.id as number)}>
-        <Print fontSize="small" />
-      </IconButton>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <IconButton size="small" color="primary" onClick={() => handlePrint(row.id as number)}>
+          <Print fontSize="small" />
+        </IconButton>
+        <IconButton size="small" color="error" disabled={row.status === 'cancelled'} onClick={() => handleCancelSale(row.id as number)}>
+          <CancelIcon fontSize="small" />
+        </IconButton>
+      </Box>
     )}
   ];
   const handleExport = () => {
@@ -127,7 +149,23 @@ export const PurchaseReport: React.FC = () => {
   const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
   const [to, setTo] = useState<Dayjs | null>(dayjs());
   const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') });
-  const { data, isLoading } = useQuery({ queryKey: ['report-purchase', params], queryFn: () => reportService.getPurchase(params) });
+  const { data, isLoading, refetch } = useQuery({ queryKey: ['report-purchase', params], queryFn: () => reportService.getPurchase(params) });
+  const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
+
+  const handleCancelPurchase = async (id: number) => {
+    if (!window.confirm('Are you sure you want to cancel this purchase? This action will deduct the stock.')) return;
+    try {
+      await purchaseService.remove(id);
+      enqueueSnackbar('Purchase cancelled successfully', { variant: 'success' });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['report-supplier-ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['report-item-ledger'] });
+    } catch (err: any) {
+      enqueueSnackbar(err.response?.data?.message || 'Failed to cancel purchase', { variant: 'error' });
+    }
+  };
+
   const rows = (data?.data?.data as Record<string, unknown>[] || []);
   const total = rows.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
   const cols = [
@@ -137,6 +175,11 @@ export const PurchaseReport: React.FC = () => {
     { key: 'grandTotal', label: 'Amount', align: 'right' as const, format: (v: unknown) => formatCurrency(v as number) },
     { key: 'paymentMode', label: 'Payment' },
     { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Action', align: 'right' as const, format: (_: unknown, row: Record<string, unknown>) => (
+      <IconButton size="small" color="error" disabled={row.status === 'cancelled'} onClick={() => handleCancelPurchase(row.id as number)}>
+        <CancelIcon fontSize="small" />
+      </IconButton>
+    )}
   ];
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({ Invoice: r.invoiceNo, Date: r.invoiceDate, Supplier: (r.supplier as Record<string, unknown>)?.name || 'Walk-in', Amount: r.grandTotal, Payment: r.paymentMode })));
@@ -287,16 +330,32 @@ export const SupplierLedger: React.FC = () => {
 
   const { data, isLoading } = useQuery({ queryKey: ['report-supplier-ledger', params], queryFn: () => reportService.getSupplierLedger(params) });
   const rows = (data?.data?.data as Record<string, unknown>[] || []);
-  const totalAmount = rows.reduce((s, r) => s + Number(r.grandTotal || 0), 0);
+  
+  const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+  const closingBalance = lastRow ? Number(lastRow.balance || 0) : 0;
+  const closingType = lastRow ? (lastRow.balanceType as string || 'Cr') : 'Cr';
 
   const cols = [
-    { key: 'invoiceDate', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
-    { key: 'invoiceNo', label: 'Invoice No' },
-    { key: 'supplierName', label: 'Supplier', format: (_: unknown, row?: Record<string, unknown>) => (row?.supplier as Record<string, unknown>)?.name as string || 'Walk-in' },
-    { key: 'paymentMode', label: 'Payment' },
-    { key: 'status', label: 'Status' },
-    { key: 'grandTotal', label: 'Amount', align: 'right' as const, format: (v: unknown) => formatCurrency(v as number) },
+    { key: 'date', label: 'Date', format: (v: unknown) => v ? new Date(v as string).toLocaleDateString('en-IN') : '' },
+    { key: 'voucherNo', label: 'Voucher No.' },
+    { key: 'type', label: 'Type' },
+    { key: 'debit', label: 'Debit', align: 'right' as const, format: (v: unknown) => Number(v) > 0 ? formatCurrency(v as number) : '0' },
+    { key: 'credit', label: 'Credit', align: 'right' as const, format: (v: unknown) => Number(v) > 0 ? formatCurrency(v as number) : '0' },
+    { key: 'balance', label: 'Balance', align: 'right' as const, format: (_: unknown, row?: Record<string, unknown>) => `${formatCurrency(row?.balance as number)} ${row?.balanceType || 'Cr'}` },
   ];
+
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(rows.map((r) => ({
+      Date: r.date ? new Date(r.date as string).toLocaleDateString('en-IN') : '',
+      'Voucher No': r.voucherNo,
+      Type: r.type,
+      Debit: Number(r.debit || 0),
+      Credit: Number(r.credit || 0),
+      Balance: `${Number(r.balance || 0).toFixed(2)} ${r.balanceType || 'Cr'}`,
+    })));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Supplier Ledger');
+    XLSX.writeFile(wb, 'SupplierLedger.xlsx');
+  };
 
   return (
     <Box>
@@ -318,14 +377,15 @@ export const SupplierLedger: React.FC = () => {
               <Button variant="contained" onClick={() => setParams({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD'), supplierId })} disabled={isLoading}>
                 {isLoading ? <CircularProgress size={20} /> : 'Search'}
               </Button>
+              <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExport}>Export Excel</Button>
             </Box>
           </CardContent>
         </Card>
       </LocalizationProvider>
       <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
-        <Chip label={`Total Purchases: ${formatCurrency(totalAmount)}`} color="secondary" />
+        <Chip label={`Closing Balance: ${formatCurrency(closingBalance)} ${closingType}`} color="secondary" />
       </Box>
-      <ReportTable rows={rows.map((r) => ({ ...r, supplierName: (r.supplier as Record<string, unknown>)?.name || 'Walk-in' }))} columns={cols} />
+      <ReportTable rows={rows} columns={cols} />
     </Box>
   );
 };

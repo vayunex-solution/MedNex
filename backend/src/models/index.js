@@ -4,6 +4,10 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 // ─── User ─────────────────────────────────────────────────────────────────────
+const CashBankEntry = require('./financial/CashBankEntry');
+const JournalVoucher = require('./financial/JournalVoucher');
+const JournalVoucherDetail = require('./financial/JournalVoucherDetail');
+
 const User = sequelize.define('User', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   uuid: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, allowNull: false, unique: true },
@@ -404,6 +408,14 @@ SaleItem.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch' });
 StockAdjustment.belongsTo(Medicine, { foreignKey: 'medicineId', as: 'medicine' });
 StockAdjustment.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch' });
 
+CashBankEntry.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+CashBankEntry.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'supplier' });
+
+JournalVoucher.hasMany(JournalVoucherDetail, { foreignKey: 'journalId', as: 'details' });
+JournalVoucherDetail.belongsTo(JournalVoucher, { foreignKey: 'journalId', as: 'journal' });
+JournalVoucherDetail.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+JournalVoucherDetail.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'supplier' });
+
 module.exports = {
   sequelize,
   User, Company, Store, Rack, Unit, GstSlab, HsnCode,
@@ -413,4 +425,5 @@ module.exports = {
   Batch, PurchaseInvoice, PurchaseItem,
   SaleInvoice, SaleItem,
   StockAdjustment, AuditLog,
+  CashBankEntry, JournalVoucher, JournalVoucherDetail,
 };
