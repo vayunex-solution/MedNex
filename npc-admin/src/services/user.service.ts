@@ -71,7 +71,7 @@ export const userService = {
   },
 
   async resetPassword(uuid: string, newPassword: string) {
-    await api.post(`/platform/users/${uuid}/reset-password`, { newPassword });
+    await api.post(`/platform/users/${uuid}/reset-password`, { password: newPassword });
   },
 
   async forcePasswordReset(uuid: string) {
