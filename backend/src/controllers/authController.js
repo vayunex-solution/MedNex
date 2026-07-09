@@ -85,6 +85,11 @@ const refreshToken = async (req, res) => {
     const user = rows[0];
     if (!user) return unauthorized(res, 'Invalid refresh token');
 
+    // Block suspended users from getting a new token
+    if (user.status && user.status !== 'active') {
+      return unauthorized(res, 'User account is suspended or inactive');
+    }
+
     const tokens = generateTokens(user);
     // Try to update refreshToken, ignore if column doesn't exist
     try {
@@ -97,6 +102,7 @@ const refreshToken = async (req, res) => {
     return unauthorized(res, 'Invalid or expired refresh token');
   }
 };
+
 
 const logout = async (req, res) => {
   try {
