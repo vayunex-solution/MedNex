@@ -3,6 +3,7 @@
 const { SaleInvoice, SaleItem, Medicine, Customer, Doctor, Batch, Company, HsnCode, GstSlab, sequelize } = require('../models');
 const { success, created, notFound } = require('../helpers/response');
 const { buildWhere, getPagination } = require('../helpers/queryHelper');
+const { createNotification } = require('../helpers/notificationService');
 
 const getAll = async (req, res) => {
   const { page, limit, offset } = getPagination(req.query);
@@ -93,6 +94,15 @@ const create = async (req, res) => {
         { model: SaleItem, as: 'items', include: [{ model: Medicine, as: 'medicine' }] },
       ],
     });
+
+    // 🔔 Real-time notification broadcast
+    createNotification({
+      type: 'sale',
+      title: 'New Sale Created',
+      message: `Invoice ${invoiceNo} created for ₹${grandTotal.toFixed(2)}`,
+      link: '/sales',
+    }).catch(() => {});
+
     return created(res, full);
   } catch (err) {
     await t.rollback();

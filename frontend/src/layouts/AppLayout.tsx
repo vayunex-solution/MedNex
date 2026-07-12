@@ -10,7 +10,7 @@ import {
   ShoppingCart, Receipt, Inventory, Assessment, Settings,
   ChevronLeft, ChevronRight, Brightness4, Brightness7,
   KeyboardArrowDown, KeyboardArrowUp, Logout, Person,
-  Notifications, LocalHospital, CategoryOutlined,
+  LocalHospital, CategoryOutlined,
   BusinessCenter, AccountBalance, QrCode, Store,
   Warning, TrendingUp,
 } from '@mui/icons-material';
@@ -19,6 +19,8 @@ import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { toggleTheme } from '../redux/slices/themeSlice';
 import { logout } from '../redux/slices/authSlice';
 import { authService } from '../services';
+import NotificationPanel, { NotificationBell } from '../components/NotificationPanel';
+import { useNotifications } from '../hooks/useNotifications';
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 72;
@@ -97,6 +99,10 @@ const AppLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Masters']);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  // Real-time notification system
+  const notif = useNotifications();
 
   // Dynamically filter navItems to include Tenants management for super_admin
   const filteredNavItems = React.useMemo(() => {
@@ -281,13 +287,7 @@ const AppLayout: React.FC = () => {
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Notifications">
-              <IconButton>
-                <Badge badgeContent={3} color="error">
-                  <Notifications />
-                </Badge>
-              </IconButton>
-            </Tooltip>
+            <NotificationBell unreadCount={notif.unreadCount} onClick={() => setNotifOpen(true)} />
 
             <Tooltip title="Account">
               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
@@ -314,6 +314,19 @@ const AppLayout: React.FC = () => {
               </MenuItem>
             </Menu>
           </Toolbar>
+
+          {/* Real-time Notification Panel */}
+          <NotificationPanel
+            open={notifOpen}
+            onClose={() => setNotifOpen(false)}
+            notifications={notif.notifications}
+            unreadCount={notif.unreadCount}
+            loading={notif.loading}
+            markRead={notif.markRead}
+            markAllRead={notif.markAllRead}
+            clearAll={notif.clearAll}
+            deleteOne={notif.deleteOne}
+          />
         </AppBar>
 
         {/* Page content */}

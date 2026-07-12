@@ -71,4 +71,7 @@ router.get('/dashboard/recent-sales', authenticate, dashboardCtrl.getRecentSales
 // ─── Finance ──────────────────────────────────────────────────────────────────
 router.use('/finance', require('./financeRoutes'));
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+router.use('/notifications', require('./notificationRoutes'));
+
 module.exports = router;

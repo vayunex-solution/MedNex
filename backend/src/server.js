@@ -68,6 +68,22 @@ const start = async () => {
     // manually via migrations, not on every boot.
     logger.info('Database connection verified (sync disabled)');
     await seedAdmin();
+    // Ensure notifications table exists (safe to run on every startup via IF NOT EXISTS)
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT DEFAULT NULL,
+        type ENUM('sale','purchase','low_stock','expiry','system','update') DEFAULT 'system',
+        title VARCHAR(200) NOT NULL,
+        message TEXT NOT NULL,
+        link VARCHAR(300) DEFAULT NULL,
+        isRead TINYINT(1) DEFAULT 0,
+        isDeleted TINYINT(1) DEFAULT 0,
+        createdAt DATETIME NOT NULL DEFAULT NOW(),
+        updatedAt DATETIME NOT NULL DEFAULT NOW()
+      )
+    `);
+    logger.info('Notifications table verified');
     const outboxDispatcher = require('./shared/events/outboxDispatcher');
     outboxDispatcher.start(5000);
     app.listen(PORT, () => logger.info(`MedNex server running on port ${PORT}`));

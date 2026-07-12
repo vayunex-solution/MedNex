@@ -4,6 +4,7 @@ const { PurchaseInvoice, PurchaseItem, Medicine, Supplier, Batch, sequelize } = 
 const { success, created, notFound, badRequest } = require('../helpers/response');
 const { buildWhere, getPagination } = require('../helpers/queryHelper');
 const { Company } = require('../models');
+const { createNotification } = require('../helpers/notificationService');
 
 const getAll = async (req, res) => {
   const { page, limit, offset } = getPagination(req.query);
@@ -67,6 +68,15 @@ const create = async (req, res) => {
     await logAudit(req, 'CREATE', 'Purchase', `Created purchase bill ${invoiceNo} totaling ₹${grandTotal.toFixed(2)}`);
 
     await t.commit();
+
+    // 🔔 Real-time notification broadcast
+    createNotification({
+      type: 'purchase',
+      title: 'New Purchase Created',
+      message: `Purchase bill ${invoiceNo} created for ₹${grandTotal.toFixed(2)}`,
+      link: '/purchase',
+    }).catch(() => {});
+
     return created(res, { ...invoice.toJSON(), invoiceNo });
   } catch (err) {
     await t.rollback();
