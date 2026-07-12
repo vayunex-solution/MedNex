@@ -330,7 +330,7 @@ const AppLayout: React.FC = () => {
         </AppBar>
 
         {/* Page content */}
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 3, backgroundColor: 'background.default' }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 1.5, sm: 2, md: 3 }, backgroundColor: 'background.default' }}>
           <Outlet />
         </Box>
       </Box>
