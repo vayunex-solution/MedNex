@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box, Typography, Grid, Card, CardContent, TextField, Button,
   Autocomplete, Table, TableBody, TableCell, TableHead, TableRow,
@@ -35,6 +36,8 @@ interface PurchaseRow {
 const PurchaseEntry: React.FC = () => {
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('editId');
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [supplierInvoiceNo, setSupplierInvoiceNo] = useState('');
@@ -42,6 +45,42 @@ const PurchaseEntry: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [rows, setRows] = useState<PurchaseRow[]>([]);
   const [medSearch, setMedSearch] = useState('');
+
+  const { data: editPurchaseRes } = useQuery({
+    queryKey: ['purchases-edit-item', editId],
+    queryFn: () => purchaseService.getById(Number(editId)),
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (editPurchaseRes?.data?.data) {
+      const p = editPurchaseRes.data.data;
+      setSupplier(p.supplier || null);
+      setInvoiceDate(p.invoiceDate);
+      setSupplierInvoiceNo(p.supplierInvoiceNo || '');
+      setPaymentMode(p.paymentMode || 'Credit');
+      setNotes(p.notes || '');
+      setRows((p.items || []).map((it: any) => ({
+        id: it.id,
+        medicineId: it.medicineId,
+        medicineName: it.medicine?.name || '',
+        batchNo: it.batchNo || '',
+        expiryDate: it.expiryDate || '',
+        qty: Number(it.qty || 0),
+        freeQty: Number(it.freeQty || 0),
+        mrp: Number(it.mrp || 0),
+        ptr: Number(it.ptr || 0),
+        rate: Number(it.rate || 0),
+        discount: Number(it.discount || 0),
+        cgst: Number(it.cgst || 0),
+        sgst: Number(it.sgst || 0),
+        igst: Number(it.igst || 0),
+        gstRate: Number(it.cgst || 0) + Number(it.sgst || 0) + Number(it.igst || 0),
+        gstAmount: Number(it.gstAmount || 0),
+        amount: Number(it.amount || 0),
+      })));
+    }
+  }, [editPurchaseRes]);
 
   const { data: suppliersData } = useQuery({ queryKey: ['suppliers-list'], queryFn: () => supplierService.getList() });
   const { data: medicinesData } = useQuery({
@@ -99,16 +138,22 @@ const PurchaseEntry: React.FC = () => {
   const totalTax = rows.reduce((s, r) => s + r.gstAmount, 0);
 
   const mutation = useMutation({
-    mutationFn: (data: unknown) => purchaseService.create(data),
+    mutationFn: (data: unknown) => editId ? purchaseService.update(Number(editId), data) : purchaseService.create(data),
     onSuccess: () => {
-      enqueueSnackbar('Purchase saved successfully!', { variant: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      enqueueSnackbar(editId ? 'Purchase updated successfully!' : 'Purchase saved successfully!', { variant: 'success' });
+      queryClient.invalidateQueries(); // Refresh all reports, dropdowns and lists
+      if (editId) {
+        setSearchParams({});
+      }
       setRows([]); setSupplier(null); setSupplierInvoiceNo('');
       setInvoiceDate(new Date().toISOString().split('T')[0]);
       setPaymentMode('Credit');
       setNotes('');
     },
-    onError: () => enqueueSnackbar('Error saving purchase', { variant: 'error' }),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Error saving purchase';
+      enqueueSnackbar(msg, { variant: 'error' });
+    },
   });
 
   const handleSave = () => {

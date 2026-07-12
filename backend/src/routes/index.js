@@ -32,12 +32,14 @@ router.delete('/medicines/:id', authenticate, authorize('super_admin', 'admin'),
 router.get('/purchases', authenticate, purchaseCtrl.getAll);
 router.get('/purchases/:id', authenticate, purchaseCtrl.getById);
 router.post('/purchases', authenticate, authorize('super_admin', 'admin', 'pharmacist'), purchaseCtrl.create);
+router.put('/purchases/:id', authenticate, authorize('super_admin', 'admin', 'pharmacist'), purchaseCtrl.update);
 router.delete('/purchases/:id', authenticate, authorize('super_admin', 'admin'), purchaseCtrl.remove);
 
 // ─── Sales ────────────────────────────────────────────────────────────────────
 router.get('/sales', authenticate, saleCtrl.getAll);
 router.get('/sales/:id', authenticate, saleCtrl.getById);
 router.post('/sales', authenticate, saleCtrl.create);
+router.put('/sales/:id', authenticate, authorize('super_admin', 'admin', 'pharmacist'), saleCtrl.update);
 router.put('/sales/:id/cancel', authenticate, authorize('super_admin', 'admin'), saleCtrl.cancel);
 
 // ─── Stock ────────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ router.get('/reports/item-ledger', authenticate, reportCtrl.getItemLedger);
 router.get('/reports/cash-book', authenticate, reportCtrl.getCashBook);
 router.get('/reports/bank-book', authenticate, reportCtrl.getBankBook);
 router.get('/reports/journal-book', authenticate, reportCtrl.getJournalBook);
+router.get('/reports/audit-trail', authenticate, reportCtrl.getAuditTrailReport);
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 router.get('/dashboard/stats', authenticate, dashboardCtrl.getStats);

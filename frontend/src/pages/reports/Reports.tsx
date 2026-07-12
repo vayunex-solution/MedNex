@@ -7,7 +7,8 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { FileDownload, Assessment, Print, Cancel as CancelIcon } from '@mui/icons-material';
+import { FileDownload, Assessment, Print, Cancel as CancelIcon, Edit } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import * as XLSX from 'xlsx';
@@ -64,6 +65,7 @@ const ReportFilter: React.FC<ReportFilterProps> = ({ from, to, onFromChange, onT
 
 // ─── Sales Report ─────────────────────────────────────────────────────────────
 export const SalesReport: React.FC = () => {
+  const navigate = useNavigate();
   const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
   const [to, setTo] = useState<Dayjs | null>(dayjs());
   const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') });
@@ -115,6 +117,9 @@ export const SalesReport: React.FC = () => {
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Action', align: 'right' as const, format: (_: unknown, row: Record<string, unknown>) => (
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <IconButton size="small" color="primary" onClick={() => navigate(`/sales?editId=${row.id}`)}>
+          <Edit fontSize="small" />
+        </IconButton>
         <IconButton size="small" color="primary" onClick={() => handlePrint(row.id as number)}>
           <Print fontSize="small" />
         </IconButton>
@@ -146,6 +151,7 @@ export const SalesReport: React.FC = () => {
 
 // ─── Purchase Report ─────────────────────────────────────────────────────────────
 export const PurchaseReport: React.FC = () => {
+  const navigate = useNavigate();
   const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
   const [to, setTo] = useState<Dayjs | null>(dayjs());
   const [params, setParams] = useState({ from: from?.format('YYYY-MM-DD'), to: to?.format('YYYY-MM-DD') });
@@ -176,9 +182,14 @@ export const PurchaseReport: React.FC = () => {
     { key: 'paymentMode', label: 'Payment' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Action', align: 'right' as const, format: (_: unknown, row: Record<string, unknown>) => (
-      <IconButton size="small" color="error" disabled={row.status === 'cancelled'} onClick={() => handleCancelPurchase(row.id as number)}>
-        <CancelIcon fontSize="small" />
-      </IconButton>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <IconButton size="small" color="primary" onClick={() => navigate(`/purchase?editId=${row.id}`)}>
+          <Edit fontSize="small" />
+        </IconButton>
+        <IconButton size="small" color="error" disabled={row.status === 'cancelled'} onClick={() => handleCancelPurchase(row.id as number)}>
+          <CancelIcon fontSize="small" />
+        </IconButton>
+      </Box>
     )}
   ];
   const handleExport = () => {

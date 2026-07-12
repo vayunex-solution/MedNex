@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, Card, CardContent, Button, Table, TableBody, TableCell, TableHead, TableRow, Paper, CircularProgress, Chip } from '@mui/material';
+import { Box, Typography, Card, CardContent, Button, Table, TableBody, TableCell, TableHead, TableRow, Paper, CircularProgress, Chip, IconButton } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -7,7 +7,8 @@ import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { reportService } from '../../services';
 import * as XLSX from 'xlsx';
-import { FileDownload } from '@mui/icons-material';
+import { FileDownload, Edit } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const formatCurrency = (v: number | string) => `₹${Number(v || 0).toFixed(2)}`;
 
@@ -28,38 +29,62 @@ const ReportFilter: React.FC<{ from: Dayjs | null; to: Dayjs | null; setFrom: an
   </LocalizationProvider>
 );
 
-const LedgerTable: React.FC<{ rows: any[], isJournal?: boolean }> = ({ rows, isJournal }) => (
-  <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'auto' }}>
-    <Table size="small">
-      <TableHead>
-        <TableRow sx={{ bgcolor: 'action.hover' }}>
-          <TableCell>Date</TableCell>
-          <TableCell>Voucher No.</TableCell>
-          <TableCell>Particulars</TableCell>
-          <TableCell align="right">Debit</TableCell>
-          <TableCell align="right">Credit</TableCell>
-          {!isJournal && <TableCell align="right">Balance</TableCell>}
-          {isJournal && <TableCell>Notes</TableCell>}
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rows.length === 0 ? (
-          <TableRow><TableCell colSpan={6} align="center" sx={{ py: 3 }}>No entries found</TableCell></TableRow>
-        ) : rows.map((r, i) => (
-          <TableRow key={i} hover>
-            <TableCell>{r.date ? new Date(r.date).toLocaleDateString('en-IN') : ''}</TableCell>
-            <TableCell>{r.voucherNo}</TableCell>
-            <TableCell>{r.particulars}</TableCell>
-            <TableCell align="right">{Number(r.debit) > 0 ? formatCurrency(r.debit) : '-'}</TableCell>
-            <TableCell align="right">{Number(r.credit) > 0 ? formatCurrency(r.credit) : '-'}</TableCell>
-            {!isJournal && <TableCell align="right">{formatCurrency(r.balance)} {r.balanceType}</TableCell>}
-            {isJournal && <TableCell>{r.notes}</TableCell>}
+const LedgerTable: React.FC<{ rows: any[], isJournal?: boolean }> = ({ rows, isJournal }) => {
+  const navigate = useNavigate();
+
+  const handleEdit = (r: any) => {
+    if (r.type === 'Sale') {
+      navigate(`/sales?editId=${r.id}`);
+    } else if (r.type === 'Purchase') {
+      navigate(`/purchase?editId=${r.id}`);
+    } else if (r.type === 'CashBank') {
+      navigate(`/finance/cash-bank?editId=${r.id}`);
+    } else if (r.type === 'Journal') {
+      navigate(`/finance/journal?editId=${r.id}`);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'auto' }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ bgcolor: 'action.hover' }}>
+            <TableCell>Date</TableCell>
+            <TableCell>Voucher No.</TableCell>
+            <TableCell>Particulars</TableCell>
+            <TableCell align="right">Debit</TableCell>
+            <TableCell align="right">Credit</TableCell>
+            {!isJournal && <TableCell align="right">Balance</TableCell>}
+            {isJournal && <TableCell>Notes</TableCell>}
+            <TableCell align="right">Action</TableCell>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </Paper>
-);
+        </TableHead>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3 }}>No entries found</TableCell></TableRow>
+          ) : rows.map((r, i) => (
+            <TableRow key={i} hover>
+              <TableCell>{r.date ? new Date(r.date).toLocaleDateString('en-IN') : ''}</TableCell>
+              <TableCell>{r.voucherNo}</TableCell>
+              <TableCell>{r.particulars}</TableCell>
+              <TableCell align="right">{Number(r.debit) > 0 ? formatCurrency(r.debit) : '-'}</TableCell>
+              <TableCell align="right">{Number(r.credit) > 0 ? formatCurrency(r.credit) : '-'}</TableCell>
+              {!isJournal && <TableCell align="right">{formatCurrency(r.balance)} {r.balanceType}</TableCell>}
+              {isJournal && <TableCell>{r.notes}</TableCell>}
+              <TableCell align="right">
+                {r.id && r.type && (
+                  <IconButton size="small" color="primary" onClick={() => handleEdit(r)}>
+                    <Edit fontSize="small" />
+                  </IconButton>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Paper>
+  );
+};
 
 export const CashBook: React.FC = () => {
   const [from, setFrom] = useState<Dayjs | null>(dayjs().startOf('month'));

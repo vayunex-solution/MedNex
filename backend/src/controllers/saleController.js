@@ -82,6 +82,9 @@ const create = async (req, res) => {
       }
     }
 
+    const { logAudit } = require('../helpers/auditLogger');
+    await logAudit(req, 'CREATE', 'Sales', `Created sale bill ${invoiceNo} totaling ₹${grandTotal.toFixed(2)}`);
+
     await t.commit();
     const full = await SaleInvoice.findOne({
       where: { id: invoice.id },
@@ -91,6 +94,100 @@ const create = async (req, res) => {
       ],
     });
     return created(res, full);
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+const update = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { items, ...invoiceData } = req.body;
+    const { id } = req.params;
+
+    const invoice = await SaleInvoice.findOne({
+      where: { id, isDeleted: false },
+      include: [{ model: SaleItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!invoice) {
+      await t.rollback();
+      return notFound(res);
+    }
+
+    // 1. Restore old batch stocks
+    for (const oldItem of invoice.items) {
+      if (oldItem.batchId) {
+        const batch = await Batch.findByPk(oldItem.batchId, { transaction: t });
+        if (batch) {
+          await batch.increment('qty', { by: oldItem.qty + (oldItem.free || 0), transaction: t });
+        }
+      }
+    }
+
+    // Delete old items
+    await SaleItem.destroy({ where: { saleId: id }, transaction: t });
+
+    // 2. Process new items and calculate totals
+    let subtotal = 0, cgstAmount = 0, sgstAmount = 0, igstAmount = 0, taxAmount = 0;
+    const discountAmount = Number(invoiceData.discountAmount || 0);
+
+    const processedItems = (items || []).map((item) => {
+      const taxable = (item.rate * item.qty) * (1 - (item.discount || 0) / 100);
+      const cgst = taxable * ((item.cgst || 0) / 100);
+      const sgst = taxable * ((item.sgst || 0) / 100);
+      const igst = taxable * ((item.igst || 0) / 100);
+      const gstAmount = cgst + sgst + igst;
+      const amount = taxable + gstAmount;
+      subtotal += taxable;
+      cgstAmount += cgst;
+      sgstAmount += sgst;
+      igstAmount += igst;
+      taxAmount += gstAmount;
+      return { ...item, gstAmount, amount };
+    });
+
+    const discountRatio = subtotal > 0 ? (subtotal - discountAmount) / subtotal : 1;
+    cgstAmount = cgstAmount * discountRatio;
+    sgstAmount = sgstAmount * discountRatio;
+    igstAmount = igstAmount * discountRatio;
+    taxAmount = cgstAmount + sgstAmount + igstAmount;
+
+    const grandTotal = (subtotal - discountAmount) + taxAmount + (invoiceData.roundOff || 0);
+
+    // Update invoice record
+    const oldGrandTotal = invoice.grandTotal;
+    await invoice.update({
+      ...invoiceData, subtotal, discountAmount, cgstAmount, sgstAmount, igstAmount, taxAmount, grandTotal,
+      paidAmount: invoiceData.paidAmount ?? grandTotal,
+      updatedBy: req.user?.id,
+    }, { transaction: t });
+
+    // 3. Create new items and deduct stock
+    for (const item of processedItems) {
+      await SaleItem.create({ ...item, saleId: invoice.id }, { transaction: t });
+      if (item.batchId) {
+        const batch = await Batch.findByPk(item.batchId, { transaction: t });
+        if (batch) {
+          await batch.decrement('qty', { by: item.qty + (item.free || 0), transaction: t });
+        }
+      }
+    }
+
+    const { logAudit } = require('../helpers/auditLogger');
+    await logAudit(req, 'UPDATE', 'Sales', `Updated sale bill ${invoice.invoiceNo}: grandTotal changed from ₹${oldGrandTotal} to ₹${grandTotal.toFixed(2)}`);
+
+    await t.commit();
+
+    const full = await SaleInvoice.findOne({
+      where: { id: invoice.id },
+      include: [
+        { model: Customer, as: 'customer' },
+        { model: SaleItem, as: 'items', include: [{ model: Medicine, as: 'medicine' }] },
+      ],
+    });
+    return success(res, full, 'Invoice updated successfully');
   } catch (err) {
     await t.rollback();
     throw err;
@@ -119,6 +216,9 @@ const cancel = async (req, res) => {
       }
     }
 
+    const { logAudit } = require('../helpers/auditLogger');
+    await logAudit(req, 'CANCEL', 'Sales', `Cancelled sale bill ${record.invoiceNo}`);
+
     await t.commit();
     return success(res, null, 'Invoice cancelled and stock restored');
   } catch (err) {
@@ -127,4 +227,4 @@ const cancel = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, create, cancel };
+module.exports = { getAll, getById, create, update, cancel };

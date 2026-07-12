@@ -25,6 +25,7 @@ import PurchaseEntry from './pages/purchase/PurchaseEntry';
 import SalesBilling from './pages/sales/SalesBilling';
 import { CurrentStock, ExpiryStock, BatchWiseStock } from './pages/stock/StockPages';
 import { SalesReport, PurchaseReport, GstReport, ProfitReport, CustomerLedger, SupplierLedger, ItemLedger } from './pages/reports/Reports';
+import AuditTrailReport from './pages/reports/AuditTrailReport';
 import { CashBook, BankBook, JournalBook } from './pages/finance/Books';
 import CashBankEntry from './pages/finance/CashBankEntry';
 import JournalVoucher from './pages/finance/JournalVoucher';
@@ -91,6 +92,7 @@ const AppContent: React.FC = () => {
               <Route path="reports/cash-book" element={<CashBook />} />
               <Route path="reports/bank-book" element={<BankBook />} />
               <Route path="reports/journal-book" element={<JournalBook />} />
+              <Route path="reports/audit-trail" element={<ProtectedRoute roles={['super_admin', 'admin']}><AuditTrailReport /></ProtectedRoute>} />
               {/* Settings */}
               <Route path="settings" element={<Settings />} />
             </Route>

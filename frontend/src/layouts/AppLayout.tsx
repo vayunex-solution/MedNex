@@ -78,6 +78,7 @@ const navItems: NavItem[] = [
       { label: 'Cash Book', icon: <AccountBalance />, path: '/reports/cash-book' },
       { label: 'Bank Book', icon: <AccountBalance />, path: '/reports/bank-book' },
       { label: 'Journal Book', icon: <BusinessCenter />, path: '/reports/journal-book' },
+      { label: 'Audit Trail', icon: <Assessment />, path: '/reports/audit-trail' },
     ],
   },
   { label: 'Settings', icon: <Settings />, path: '/settings' },
@@ -104,6 +105,7 @@ const AppLayout: React.FC = () => {
         { label: 'Platform Dashboard', icon: <Dashboard />, path: '/dashboard' },
         { label: 'Platform Tenants', icon: <Store />, path: '/masters/tenants' },
         { label: 'Platform Users', icon: <People />, path: '/masters/users' },
+        { label: 'Platform Audit Trail', icon: <Assessment />, path: '/reports/audit-trail' },
         { label: 'Platform Settings', icon: <Settings />, path: '/settings' },
       ];
     }

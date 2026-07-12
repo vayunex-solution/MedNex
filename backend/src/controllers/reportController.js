@@ -354,14 +354,14 @@ const getCashBook = async (req, res) => {
   const saleInvs = await SaleInvoice.findAll({ where: whereInvs, include: [{ model: Customer, as: 'customer', attributes: ['name'] }] });
   saleInvs.forEach(inv => {
     if (Number(inv.paidAmount || 0) > 0) {
-      transactions.push({ date: inv.invoiceDate, voucherNo: 'RCPT-' + inv.invoiceNo, particulars: `To ${(inv.customer && inv.customer.name) ? inv.customer.name : 'Walk-in Customer'} (Sale)`, debit: Number(inv.paidAmount), credit: 0 });
+      transactions.push({ id: inv.id, type: 'Sale', date: inv.invoiceDate, voucherNo: 'RCPT-' + inv.invoiceNo, particulars: `To ${(inv.customer && inv.customer.name) ? inv.customer.name : 'Walk-in Customer'} (Sale)`, debit: Number(inv.paidAmount), credit: 0 });
     }
   });
 
   const purchInvs = await PurchaseInvoice.findAll({ where: whereInvs, include: [{ model: Supplier, as: 'supplier', attributes: ['name'] }] });
   purchInvs.forEach(inv => {
     if (Number(inv.paidAmount || 0) > 0) {
-      transactions.push({ date: inv.invoiceDate, voucherNo: 'PMT-' + inv.invoiceNo, particulars: `By ${(inv.supplier && inv.supplier.name) ? inv.supplier.name : 'Walk-in Supplier'} (Purchase)`, debit: 0, credit: Number(inv.paidAmount) });
+      transactions.push({ id: inv.id, type: 'Purchase', date: inv.invoiceDate, voucherNo: 'PMT-' + inv.invoiceNo, particulars: `By ${(inv.supplier && inv.supplier.name) ? inv.supplier.name : 'Walk-in Supplier'} (Purchase)`, debit: 0, credit: Number(inv.paidAmount) });
     }
   });
 
@@ -376,7 +376,7 @@ const getCashBook = async (req, res) => {
     let partyName = cb.accountName || 'General';
     if (cb.partyType === 'Customer' && cb.customer) partyName = cb.customer.name;
     if (cb.partyType === 'Supplier' && cb.supplier) partyName = cb.supplier.name;
-    transactions.push({ date: cb.date, voucherNo: cb.voucherNo, particulars: `${cb.entryType === 'Receipt' ? 'To' : 'By'} ${partyName}`, debit: cb.entryType === 'Receipt' ? Number(cb.amount) : 0, credit: cb.entryType === 'Payment' ? Number(cb.amount) : 0 });
+    transactions.push({ id: cb.id, type: 'CashBank', date: cb.date, voucherNo: cb.voucherNo, particulars: `${cb.entryType === 'Receipt' ? 'To' : 'By'} ${partyName}`, debit: cb.entryType === 'Receipt' ? Number(cb.amount) : 0, credit: cb.entryType === 'Payment' ? Number(cb.amount) : 0 });
   });
 
   transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -404,14 +404,14 @@ const getBankBook = async (req, res) => {
   const saleInvs = await SaleInvoice.findAll({ where: whereInvs, include: [{ model: Customer, as: 'customer', attributes: ['name'] }] });
   saleInvs.forEach(inv => {
     if (Number(inv.paidAmount || 0) > 0) {
-      transactions.push({ date: inv.invoiceDate, voucherNo: 'RCPT-' + inv.invoiceNo, particulars: `To ${(inv.customer && inv.customer.name) ? inv.customer.name : 'Walk-in Customer'} (Sale via ${inv.paymentMode})`, debit: Number(inv.paidAmount), credit: 0 });
+      transactions.push({ id: inv.id, type: 'Sale', date: inv.invoiceDate, voucherNo: 'RCPT-' + inv.invoiceNo, particulars: `To ${(inv.customer && inv.customer.name) ? inv.customer.name : 'Walk-in Customer'} (Sale via ${inv.paymentMode})`, debit: Number(inv.paidAmount), credit: 0 });
     }
   });
 
   const purchInvs = await PurchaseInvoice.findAll({ where: whereInvs, include: [{ model: Supplier, as: 'supplier', attributes: ['name'] }] });
   purchInvs.forEach(inv => {
     if (Number(inv.paidAmount || 0) > 0) {
-      transactions.push({ date: inv.invoiceDate, voucherNo: 'PMT-' + inv.invoiceNo, particulars: `By ${(inv.supplier && inv.supplier.name) ? inv.supplier.name : 'Walk-in Supplier'} (Purchase via ${inv.paymentMode})`, debit: 0, credit: Number(inv.paidAmount) });
+      transactions.push({ id: inv.id, type: 'Purchase', date: inv.invoiceDate, voucherNo: 'PMT-' + inv.invoiceNo, particulars: `By ${(inv.supplier && inv.supplier.name) ? inv.supplier.name : 'Walk-in Supplier'} (Purchase via ${inv.paymentMode})`, debit: 0, credit: Number(inv.paidAmount) });
     }
   });
 
@@ -426,7 +426,7 @@ const getBankBook = async (req, res) => {
     let partyName = cb.accountName || 'General';
     if (cb.partyType === 'Customer' && cb.customer) partyName = cb.customer.name;
     if (cb.partyType === 'Supplier' && cb.supplier) partyName = cb.supplier.name;
-    transactions.push({ date: cb.date, voucherNo: cb.voucherNo, particulars: `${cb.entryType === 'Receipt' ? 'To' : 'By'} ${partyName} (Bank: ${cb.bankName || ''})`, debit: cb.entryType === 'Receipt' ? Number(cb.amount) : 0, credit: cb.entryType === 'Payment' ? Number(cb.amount) : 0 });
+    transactions.push({ id: cb.id, type: 'CashBank', date: cb.date, voucherNo: cb.voucherNo, particulars: `${cb.entryType === 'Receipt' ? 'To' : 'By'} ${partyName} (Bank: ${cb.bankName || ''})`, debit: cb.entryType === 'Receipt' ? Number(cb.amount) : 0, credit: cb.entryType === 'Payment' ? Number(cb.amount) : 0 });
   });
 
   transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -463,6 +463,8 @@ const getJournalBook = async (req, res) => {
       if (d.partyType === 'Customer' && d.customer) partyName = d.customer.name;
       if (d.partyType === 'Supplier' && d.supplier) partyName = d.supplier.name;
       transactions.push({
+        id: jv.id,
+        type: 'Journal',
         date: jv.date,
         voucherNo: jv.voucherNo,
         particulars: partyName,
@@ -476,4 +478,23 @@ const getJournalBook = async (req, res) => {
   return success(res, transactions);
 };
 
-module.exports = { getSalesReport, getPurchaseReport, getGstReport, getProfitReport, getCustomerLedger, getSupplierLedger, getItemLedger, getCashBook, getBankBook, getJournalBook };
+const getAuditTrailReport = async (req, res) => {
+  const { from, to, moduleName, actionType } = req.query;
+  const { AuditLog, User } = require('../models');
+  const where = {};
+  
+  if (from) where.createdAt = { ...where.createdAt, [Op.gte]: new Date(from) };
+  if (to) where.createdAt = { ...where.createdAt, [Op.lte]: new Date(to + 'T23:59:59.999Z') };
+  if (moduleName) where.module = moduleName;
+  if (actionType) where.action = actionType;
+
+  const data = await AuditLog.findAll({
+    where,
+    include: [{ model: User, as: 'user', attributes: ['name', 'email'] }],
+    order: [['createdAt', 'DESC']]
+  });
+  
+  return success(res, data);
+};
+
+module.exports = { getSalesReport, getPurchaseReport, getGstReport, getProfitReport, getCustomerLedger, getSupplierLedger, getItemLedger, getCashBook, getBankBook, getJournalBook, getAuditTrailReport };

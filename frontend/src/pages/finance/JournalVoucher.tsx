@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Grid, TextField, Button, MenuItem, CircularProgress, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Paper, Autocomplete } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -10,6 +11,8 @@ const formatCurrency = (v: number) => `₹${Number(v || 0).toFixed(2)}`;
 const JournalVoucher: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('editId');
 
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -18,6 +21,29 @@ const JournalVoucher: React.FC = () => {
     { id: 1, type: 'Dr', partyType: 'Customer', customerId: '', supplierId: '', accountName: '', amount: '' },
     { id: 2, type: 'Cr', partyType: 'Customer', customerId: '', supplierId: '', accountName: '', amount: '' },
   ]);
+
+  const { data: editJournalRes } = useQuery({
+    queryKey: ['journal-edit-item', editId],
+    queryFn: () => financeService.getJournalById(Number(editId)),
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (editJournalRes?.data?.data) {
+      const jv = editJournalRes.data.data;
+      setDate(jv.date);
+      setNotes(jv.notes || '');
+      setDetails((jv.details || []).map((d: any, idx: number) => ({
+        id: d.id || idx,
+        type: d.type,
+        partyType: d.partyType,
+        customerId: d.customerId || '',
+        supplierId: d.supplierId || '',
+        accountName: d.accountName || '',
+        amount: String(d.amount),
+      })));
+    }
+  }, [editJournalRes]);
 
   const { data: customers } = useQuery({ queryKey: ['customers-list'], queryFn: () => customerService.getList() });
   const { data: suppliers } = useQuery({ queryKey: ['suppliers-list'], queryFn: () => supplierService.getList() });
@@ -76,12 +102,17 @@ const JournalVoucher: React.FC = () => {
         }))
       };
 
-      await financeService.createJournal(payload);
-      enqueueSnackbar('Journal Voucher saved successfully!', { variant: 'success' });
+      if (editId) {
+        await financeService.updateJournal(Number(editId), payload);
+        enqueueSnackbar('Journal Voucher updated successfully!', { variant: 'success' });
+        setSearchParams({});
+      } else {
+        await financeService.createJournal(payload);
+        enqueueSnackbar('Journal Voucher saved successfully!', { variant: 'success' });
+      }
       
-      queryClient.invalidateQueries({ queryKey: ['report-journal-book'] });
-      queryClient.invalidateQueries({ queryKey: ['report-customer-ledger'] });
-      queryClient.invalidateQueries({ queryKey: ['report-supplier-ledger'] });
+      // Invalidate ALL queries to trigger auto-refresh in all dropdowns, lists, and reports
+      queryClient.invalidateQueries();
 
       // Reset
       setDate(new Date().toISOString().split('T')[0]);
@@ -99,7 +130,7 @@ const JournalVoucher: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={3}>Journal Voucher</Typography>
+      <Typography variant="h5" fontWeight={700} mb={3}>{editId ? 'Edit Journal Voucher' : 'Journal Voucher'}</Typography>
       <Card>
         <CardContent>
           <form onSubmit={handleSave}>

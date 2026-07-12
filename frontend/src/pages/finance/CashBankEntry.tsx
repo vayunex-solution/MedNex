@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Grid, TextField, Button, MenuItem, CircularProgress, Autocomplete } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -8,6 +9,8 @@ import { Save } from '@mui/icons-material';
 const CashBankEntry: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('editId');
 
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,6 +27,32 @@ const CashBankEntry: React.FC = () => {
     transactionRef: '',
     notes: '',
   });
+
+  const { data: editEntryRes } = useQuery({
+    queryKey: ['cash-bank-edit-item', editId],
+    queryFn: () => financeService.getCashBankById(Number(editId)),
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (editEntryRes?.data?.data) {
+      const entry = editEntryRes.data.data;
+      setFormData({
+        date: entry.date,
+        entryType: entry.entryType,
+        mode: entry.mode,
+        partyType: entry.partyType,
+        customerId: entry.customerId || '',
+        supplierId: entry.supplierId || '',
+        accountName: entry.accountName || '',
+        amount: String(entry.amount),
+        bankName: entry.bankName || '',
+        chequeNo: entry.chequeNo || '',
+        transactionRef: entry.transactionRef || '',
+        notes: entry.notes || '',
+      });
+    }
+  }, [editEntryRes]);
 
   const { data: customers } = useQuery({ queryKey: ['customers-list'], queryFn: () => customerService.getList() });
   const { data: suppliers } = useQuery({ queryKey: ['suppliers-list'], queryFn: () => supplierService.getList() });
@@ -63,14 +92,17 @@ const CashBankEntry: React.FC = () => {
         delete payload.bankName; delete payload.chequeNo; delete payload.transactionRef;
       }
 
-      await financeService.createCashBank(payload);
-      enqueueSnackbar(`${payload.mode} ${payload.entryType} saved successfully!`, { variant: 'success' });
+      if (editId) {
+        await financeService.updateCashBank(Number(editId), payload);
+        enqueueSnackbar(`${payload.mode} ${payload.entryType} updated successfully!`, { variant: 'success' });
+        setSearchParams({});
+      } else {
+        await financeService.createCashBank(payload);
+        enqueueSnackbar(`${payload.mode} ${payload.entryType} saved successfully!`, { variant: 'success' });
+      }
       
-      // Invalidate relevant reports
-      queryClient.invalidateQueries({ queryKey: ['report-cash-book'] });
-      queryClient.invalidateQueries({ queryKey: ['report-bank-book'] });
-      if (payload.partyType === 'Customer') queryClient.invalidateQueries({ queryKey: ['report-customer-ledger'] });
-      if (payload.partyType === 'Supplier') queryClient.invalidateQueries({ queryKey: ['report-supplier-ledger'] });
+      // Invalidate ALL queries to trigger auto-refresh in all dropdowns, lists, and reports
+      queryClient.invalidateQueries();
 
       // Reset form
       setFormData(p => ({ ...p, amount: '', notes: '', chequeNo: '', transactionRef: '' }));
@@ -83,7 +115,7 @@ const CashBankEntry: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={3}>Cash / Bank Entry</Typography>
+      <Typography variant="h5" fontWeight={700} mb={3}>{editId ? 'Edit Cash / Bank Entry' : 'Cash / Bank Entry'}</Typography>
       <Card>
         <CardContent>
           <form onSubmit={handleSave}>

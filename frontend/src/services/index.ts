@@ -51,6 +51,7 @@ export const purchaseService = {
   getAll: (params?: Record<string, unknown>) => api.get('/purchases', { params }),
   getById: (id: number) => api.get(`/purchases/${id}`),
   create: (data: unknown) => api.post('/purchases', data),
+  update: (id: number, data: unknown) => api.put(`/purchases/${id}`, data),
   remove: (id: number) => api.delete(`/purchases/${id}`),
 };
 
@@ -59,6 +60,7 @@ export const saleService = {
   getAll: (params?: Record<string, unknown>) => api.get('/sales', { params }),
   getById: (id: number) => api.get(`/sales/${id}`),
   create: (data: unknown) => api.post('/sales', data),
+  update: (id: number, data: unknown) => api.put(`/sales/${id}`, data),
   cancel: (id: number) => api.put(`/sales/${id}/cancel`),
 };
 
@@ -89,8 +91,12 @@ export const reportService = {
 export const financeService = {
   getCashBank: (params?: Record<string, unknown>) => api.get('/finance/cash-bank', { params }),
   createCashBank: (data: unknown) => api.post('/finance/cash-bank', data),
+  updateCashBank: (id: number, data: unknown) => api.put(`/finance/cash-bank/${id}`, data),
+  getCashBankById: (id: number) => api.get(`/finance/cash-bank/${id}`),
   getJournal: (params?: Record<string, unknown>) => api.get('/finance/journal', { params }),
   createJournal: (data: unknown) => api.post('/finance/journal', data),
+  updateJournal: (id: number, data: unknown) => api.put(`/finance/journal/${id}`, data),
+  getJournalById: (id: number) => api.get(`/finance/journal/${id}`),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -127,4 +133,8 @@ export const platformUserService = {
   activate: (uuid: string) => api.post(`/platform/users/${uuid}/activate`),
   suspend: (uuid: string) => api.post(`/platform/users/${uuid}/suspend`),
   resetPassword: (uuid: string, data: unknown) => api.post(`/platform/users/${uuid}/reset-password`, data),
+};
+
+export const auditTrailService = {
+  getReport: (params?: Record<string, unknown>) => api.get('/reports/audit-trail', { params }),
 };

@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 import { customerService, medicineService, batchService, saleService, companyService } from '../../services';
 import type { Customer, Medicine, Batch, SaleItem } from '../../types';
@@ -40,6 +40,8 @@ const numberToWords = (n: number): string => {
 
 const SalesBilling: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('editId');
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const printRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,50 @@ const SalesBilling: React.FC = () => {
   const [discountValue, setDiscountValue] = useState(0);
   const [savedInvoice, setSavedInvoice] = useState<unknown>(null);
   const [medSearch, setMedSearch] = useState('');
+
+  const { data: editSaleRes } = useQuery({
+    queryKey: ['sales-edit-item', editId],
+    queryFn: () => saleService.getById(Number(editId)),
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (editSaleRes?.data?.data) {
+      const sale = editSaleRes.data.data;
+      setCustomer(sale.customer || null);
+      setInvoiceDate(sale.invoiceDate);
+      setTransport(sale.transport || '');
+      setOrderNo(sale.orderNo || '');
+      setLrNumber(sale.lrNumber || '');
+      setPaymentMode(sale.paymentMode || 'Cash');
+      setPaidAmount(Number(sale.paidAmount || 0));
+      setChequeNo(sale.chequeNo || '');
+      setBankName(sale.bankName || '');
+      setTransactionRef(sale.transactionRef || '');
+      setNotes(sale.notes || '');
+      setDiscountType(sale.discountType || 'amount');
+      setDiscountValue(Number(sale.discountValue || 0));
+      setRows((sale.items || []).map((it: any) => ({
+        id: it.id,
+        medicineId: it.medicineId,
+        medicineName: it.medicine?.name || '',
+        batchId: it.batchId,
+        batchNo: it.batchNo || '',
+        expiryDate: it.expiryDate || '',
+        qty: Number(it.qty || 0),
+        free: Number(it.free || 0),
+        pack: it.pack || '',
+        hsnCode: it.hsnCode || '',
+        mrp: Number(it.mrp || 0),
+        rate: Number(it.rate || 0),
+        discount: Number(it.discount || 0),
+        sgst: Number(it.sgst || 0),
+        cgst: Number(it.cgst || 0),
+        gstAmount: Number(it.gstAmount || 0),
+        amount: Number(it.amount || 0),
+      })));
+    }
+  }, [editSaleRes]);
 
   const { data: customersData } = useQuery({ queryKey: ['customers-list'], queryFn: () => customerService.getList() });
   const { data: medicinesData } = useQuery({
@@ -169,11 +215,14 @@ const SalesBilling: React.FC = () => {
   }, [paymentMode]);
 
   const mutation = useMutation({
-    mutationFn: (data: unknown) => saleService.create(data),
+    mutationFn: (data: unknown) => editId ? saleService.update(Number(editId), data) : saleService.create(data),
     onSuccess: (res) => {
       setSavedInvoice(res.data.data);
-      enqueueSnackbar('Invoice saved successfully!', { variant: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      enqueueSnackbar(editId ? 'Invoice updated successfully!' : 'Invoice saved successfully!', { variant: 'success' });
+      queryClient.invalidateQueries(); // Auto-refresh all lists, dropdowns, and reports
+      if (editId) {
+        setSearchParams({});
+      }
       setRows([]); 
       setCustomer(null); 
       setPaymentMode('Cash'); 
@@ -185,7 +234,10 @@ const SalesBilling: React.FC = () => {
       setDiscountType('amount'); 
       setDiscountValue(0);
     },
-    onError: () => enqueueSnackbar('Error saving invoice', { variant: 'error' }),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Error saving invoice';
+      enqueueSnackbar(msg, { variant: 'error' });
+    },
   });
 
   const handleSave = () => {

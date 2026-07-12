@@ -415,6 +415,8 @@ JournalVoucherDetail.belongsTo(JournalVoucher, { foreignKey: 'journalId', as: 'j
 JournalVoucherDetail.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 JournalVoucherDetail.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'supplier' });
 
+AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 module.exports = {
   sequelize,
   User, Company, Store, Rack, Unit, GstSlab, HsnCode,
