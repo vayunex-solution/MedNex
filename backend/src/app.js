@@ -16,31 +16,39 @@ const authRoutes = require('./routes/authRoutes');
 const masterRoutes = require('./routes/masterRoutes');
 const apiRoutes = require('./routes/index');
 
-const app = express();
-
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-NPC-Client-Id', 'X-NPC-Signature', 'X-NPC-Timestamp', 'X-NPC-Nonce', 'X-NPC-Version', 'X-Correlation-ID']
-}));
-
-// Express automatic preflight OPTIONS handler
+// ─── CORS (Nuclear mode - manual headers, no package dependency) ──────────────
+// Must be FIRST middleware before anything else
 app.use((req, res, next) => {
+  // Always set CORS headers on every response
+  const allowedOrigins = [
+    'https://mednex.vayunexsolution.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+  ];
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+  } else if (requestOrigin) {
+    // Allow any origin during development / unknown origins
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'https://mednex.vayunexsolution.com');
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-Correlation-ID');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Vary', 'Origin');
+
+  // Immediately respond to preflight requests
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-NPC-Client-Id, X-NPC-Signature, X-NPC-Timestamp, X-NPC-Nonce, X-NPC-Version, X-Correlation-ID');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    return res.sendStatus(204);
+    return res.status(204).end();
   }
   next();
 });
 
-const securityHeaders = require('./middleware/securityHeaders');
-app.use(securityHeaders);
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-// Duplicate block removed
+
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500, message: 'Too many requests' });
