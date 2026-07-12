@@ -144,7 +144,7 @@ const update = async (req, res) => {
     auditDetails.push(`Date: ${invoice.invoiceDate} -> ${invoiceData.invoiceDate || invoice.invoiceDate}`);
     auditDetails.push(`Supplier Invoice No: ${invoice.supplierInvoiceNo} -> ${invoiceData.supplierInvoiceNo || invoice.supplierInvoiceNo}`);
     auditDetails.push(`Payment Mode: ${invoice.paymentMode} -> ${invoiceData.paymentMode || invoice.paymentMode}`);
-    auditDetails.push(`Grand Total: ₹${oldGrandTotal.toFixed(2)} -> ₹${grandTotal.toFixed(2)}`);
+    auditDetails.push(`Grand Total: ₹${Number(oldGrandTotal || 0).toFixed(2)} -> ₹${Number(grandTotal || 0).toFixed(2)}`);
 
     auditDetails.push('\n[Item Changes]');
     for (const oldItem of invoice.items) {

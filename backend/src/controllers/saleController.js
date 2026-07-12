@@ -191,10 +191,10 @@ const update = async (req, res) => {
 
     auditDetails.push(`Date: ${invoice.invoiceDate} -> ${invoiceData.invoiceDate || invoice.invoiceDate}`);
     auditDetails.push(`Payment Mode: ${invoice.paymentMode} -> ${invoiceData.paymentMode || invoice.paymentMode}`);
-    auditDetails.push(`Subtotal: ₹${invoice.subtotal.toFixed(2)} -> ₹${subtotal.toFixed(2)}`);
-    auditDetails.push(`Discount: ₹${invoice.discountAmount.toFixed(2)} -> ₹${discountAmount.toFixed(2)}`);
-    auditDetails.push(`Tax Amount: ₹${invoice.taxAmount.toFixed(2)} -> ₹${taxAmount.toFixed(2)}`);
-    auditDetails.push(`Grand Total: ₹${oldGrandTotal.toFixed(2)} -> ₹${grandTotal.toFixed(2)}`);
+    auditDetails.push(`Subtotal: ₹${Number(invoice.subtotal || 0).toFixed(2)} -> ₹${Number(subtotal || 0).toFixed(2)}`);
+    auditDetails.push(`Discount: ₹${Number(invoice.discountAmount || 0).toFixed(2)} -> ₹${Number(discountAmount || 0).toFixed(2)}`);
+    auditDetails.push(`Tax Amount: ₹${Number(invoice.taxAmount || 0).toFixed(2)} -> ₹${Number(taxAmount || 0).toFixed(2)}`);
+    auditDetails.push(`Grand Total: ₹${Number(oldGrandTotal || 0).toFixed(2)} -> ₹${Number(grandTotal || 0).toFixed(2)}`);
 
     auditDetails.push('\n[Item Changes]');
     for (const oldItem of invoice.items) {
