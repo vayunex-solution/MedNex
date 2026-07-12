@@ -138,3 +138,33 @@ export const platformUserService = {
 export const auditTrailService = {
   getReport: (params?: Record<string, unknown>) => api.get('/reports/audit-trail', { params }),
 };
+
+export const tenantSettingsService = {
+  get: () => api.get('/tenant/settings').then(r => r.data.data),
+  update: (data: unknown) => api.put('/tenant/settings', data),
+  testSmtp: (data: unknown) => api.post('/tenant/settings/test-smtp', data),
+};
+
+export const developerService = {
+  listKeys: () => api.get('/developer/keys').then(r => r.data.data),
+  generateKey: (data: unknown) => api.post('/developer/keys', data).then(r => r.data.data),
+  revokeKey: (id: number) => api.delete(`/developer/keys/${id}`),
+  listWebhooks: () => api.get('/developer/webhooks').then(r => r.data.data),
+  createWebhook: (data: unknown) => api.post('/developer/webhooks', data).then(r => r.data.data),
+  deleteWebhook: (id: number) => api.delete(`/developer/webhooks/${id}`),
+  getWebhookLogs: () => api.get('/developer/webhooks/logs').then(r => r.data.data),
+};
+
+export const campaignService = {
+  list: () => api.get('/marketing/campaigns').then(r => r.data.data),
+  create: (data: unknown) => api.post('/marketing/campaigns', data),
+  getSegments: () => api.get('/marketing/segments').then(r => r.data.data),
+  send: (id: number) => api.post(`/marketing/campaigns/${id}/send`),
+};
+
+export const offerService = {
+  list: () => api.get('/offers').then(r => r.data.data),
+  create: (data: unknown) => api.post('/offers', data),
+  toggleStatus: (id: number, isActive: boolean) => api.put(`/offers/${id}/status`, { isActive }),
+  remove: (id: number) => api.delete(`/offers/${id}`),
+};

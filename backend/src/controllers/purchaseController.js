@@ -77,6 +77,10 @@ const create = async (req, res) => {
       link: '/purchase',
     }).catch(() => {});
 
+    // ─── Outbound Webhook Trigger ─────────────────────────────────────────────
+    const { triggerWebhook } = require('../helpers/webhookHelper');
+    triggerWebhook(req.user?.tenantId || 1, 'purchase.created', { ...invoice.toJSON(), invoiceNo }).catch(() => {});
+
     return created(res, { ...invoice.toJSON(), invoiceNo });
   } catch (err) {
     await t.rollback();

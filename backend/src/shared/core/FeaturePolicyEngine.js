@@ -1,53 +1,94 @@
 'use strict';
 
-const subscriptionRepository = require('../../platform/subscription/subscription.repository');
-const licenseRepository = require('../../platform/license/license.model'); // Use direct model to check if repo exists or load dynamically
+const sequelize = require('../../config/database');
 const { ForbiddenError } = require('../errors/AppError');
 
 class FeaturePolicyEngine {
   /**
-   * Compose and evaluate policy checks for a Tenant's capabilities
+   * Resolves capabilities using strict precedence:
+   * Tenant Overrides -> Subscription Plan Features -> Core System Features
    */
   async evaluate(tenantId, requiredFeature = null, requiredLimitKey = null, currentCount = 0) {
-    // 1. Fetch Subscription
-    const subscription = await subscriptionRepository.findOne({ tenantId });
-    if (!subscription || subscription.status !== 'active') {
-      throw new ForbiddenError('Tenant has no active subscription plans', 'SUBSCRIPTION_REQUIRED');
+    if (!tenantId) return true; // Bypass for platform wide/Super Admin operations
+
+    // 1. Verify Tenant Status
+    const [tenants] = await sequelize.query(
+      'SELECT status, isActive FROM plat_tenants WHERE id = ? LIMIT 1',
+      { replacements: [tenantId] }
+    );
+    const tenant = tenants[0];
+    if (tenant && (!tenant.isActive || tenant.status !== 'active')) {
+      throw new ForbiddenError('Tenant account is suspended or inactive', 'TENANT_INACTIVE');
     }
 
-    // 2. Fetch License details (generic check)
-    const License = require('../../platform/license/license.model');
-    const license = await License.findOne({ where: { tenantId } });
-    if (license && new Date(license.expiresAt) < new Date()) {
-      throw new ForbiddenError('Platform license has expired', 'LICENSE_EXPIRED');
-    }
-
-    // 3. Enforce Limit checks
-    if (requiredLimitKey && license) {
-      let maxLimit = 1;
-      if (requiredLimitKey === 'max-businesses') {
-        maxLimit = license.licenseType === 'Premium' ? 5 : 1;
-      } else if (requiredLimitKey === 'max-branches') {
-        maxLimit = license.maxBranches || 1;
-      } else if (requiredLimitKey === 'max-users') {
-        maxLimit = license.maxUsers || 5;
+    // 2. Resource Limits Check
+    if (requiredLimitKey) {
+      let maxLimit = 5; // Safe default
+      const [settings] = await sequelize.query(
+        'SELECT value FROM plat_tenant_settings WHERE tenantId = ? AND `key` = ? LIMIT 1',
+        { replacements: [tenantId, `limit.${requiredLimitKey}`] }
+      );
+      if (settings.length > 0) {
+        maxLimit = parseInt(settings[0].value) || 5;
+      } else {
+        // Plan-based defaults
+        const [subs] = await sequelize.query(
+          'SELECT planId FROM plat_subscriptions WHERE tenantId = ? AND status = "active" LIMIT 1',
+          { replacements: [tenantId] }
+        );
+        const plan = subs[0]?.planId || 'Starter';
+        if (requiredLimitKey === 'max-users') {
+          maxLimit = plan === 'Enterprise' ? 100 : (plan === 'Professional' ? 15 : 5);
+        } else if (requiredLimitKey === 'max-branches') {
+          maxLimit = plan === 'Enterprise' ? 10 : (plan === 'Professional' ? 3 : 1);
+        }
       }
 
       if (currentCount >= maxLimit) {
         throw new ForbiddenError(
-          `Resource limit exceeded. Limit: ${maxLimit}, Current: ${currentCount}`,
+          `Resource limit exceeded for ${requiredLimitKey}. Allowed: ${maxLimit}, Current: ${currentCount}`,
           'LIMIT_EXCEEDED'
         );
       }
     }
 
-    // 4. Feature Flag check
+    // 3. Feature Flag Resolution
     if (requiredFeature) {
-      const Feature = require('../../platform/feature/feature.model');
-      const feature = await Feature.findOne({ where: { tenantId, featureKey: requiredFeature } });
-      if (!feature || !feature.isEnabled) {
-        throw new ForbiddenError(`Feature ${requiredFeature} is not enabled for this tenant`, 'FEATURE_DISABLED');
+      // Priority 1: Tenant Overrides (Custom inclusion/exclusion)
+      const [overrides] = await sequelize.query(
+        'SELECT isEnabled FROM plat_tenant_feature_overrides WHERE tenantId = ? AND featureKey = ? LIMIT 1',
+        { replacements: [tenantId, requiredFeature] }
+      );
+      if (overrides.length > 0) {
+        if (!overrides[0].isEnabled) {
+          throw new ForbiddenError(`Feature ${requiredFeature} is disabled for your tenant account`, 'FEATURE_DISABLED');
+        }
+        return true;
       }
+
+      // Priority 2: Subscription Plan Features
+      const [subs] = await sequelize.query(
+        'SELECT planId FROM plat_subscriptions WHERE tenantId = ? AND status = "active" LIMIT 1',
+        { replacements: [tenantId] }
+      );
+      if (subs.length > 0) {
+        const planId = subs[0].planId;
+        const [planFeats] = await sequelize.query(
+          'SELECT 1 FROM plat_plan_features WHERE planId = ? AND featureKey = ? LIMIT 1',
+          { replacements: [planId, requiredFeature] }
+        );
+        if (planFeats.length > 0) {
+          return true;
+        }
+      }
+
+      // Priority 3: Core System Features (Default active)
+      const coreFeatures = ['pos-billing', 'inventory-tracking'];
+      if (coreFeatures.includes(requiredFeature)) {
+        return true;
+      }
+
+      throw new ForbiddenError(`Feature ${requiredFeature} is not supported on your current subscription plan`, 'FEATURE_DISABLED');
     }
 
     return true;

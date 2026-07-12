@@ -44,6 +44,12 @@ const createCrudController = (Model, options = {}) => {
     if (beforeCreate) await beforeCreate(data, req);
     const record = await Model.create(data);
     if (afterCreate) await afterCreate(record, req);
+
+    // ─── Outbound Webhook Trigger ─────────────────────────────────────────────
+    const { triggerWebhook } = require('../helpers/webhookHelper');
+    const eventName = `${Model.name.toLowerCase()}.created`;
+    triggerWebhook(req.user?.tenantId || 1, eventName, record.toJSON()).catch(() => {});
+
     return created(res, record);
   };
 
@@ -54,6 +60,12 @@ const createCrudController = (Model, options = {}) => {
     if (beforeUpdate) await beforeUpdate(data, req, record);
     await record.update(data);
     if (afterUpdate) await afterUpdate(record, req);
+
+    // ─── Outbound Webhook Trigger ─────────────────────────────────────────────
+    const { triggerWebhook } = require('../helpers/webhookHelper');
+    const eventName = `${Model.name.toLowerCase()}.updated`;
+    triggerWebhook(req.user?.tenantId || 1, eventName, record.toJSON()).catch(() => {});
+
     return success(res, record, 'Updated successfully');
   };
 
@@ -61,6 +73,12 @@ const createCrudController = (Model, options = {}) => {
     const record = await Model.findOne({ where: { id: req.params.id, isDeleted: false } });
     if (!record) return notFound(res);
     await record.update({ isDeleted: true, updatedBy: req.user?.id });
+
+    // ─── Outbound Webhook Trigger ─────────────────────────────────────────────
+    const { triggerWebhook } = require('../helpers/webhookHelper');
+    const eventName = `${Model.name.toLowerCase()}.deleted`;
+    triggerWebhook(req.user?.tenantId || 1, eventName, { id: req.params.id }).catch(() => {});
+
     return success(res, null, 'Deleted successfully');
   };
 

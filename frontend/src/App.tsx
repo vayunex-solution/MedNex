@@ -30,6 +30,9 @@ import { CashBook, BankBook, JournalBook } from './pages/finance/Books';
 import CashBankEntry from './pages/finance/CashBankEntry';
 import JournalVoucher from './pages/finance/JournalVoucher';
 import Settings from './pages/settings/Settings';
+import DeveloperConsole from './pages/developer/DeveloperConsole';
+import Campaigns from './pages/marketing/Campaigns';
+import Offers from './pages/marketing/Offers';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -95,6 +98,11 @@ const AppContent: React.FC = () => {
               <Route path="reports/audit-trail" element={<ProtectedRoute roles={['super_admin', 'admin']}><AuditTrailReport /></ProtectedRoute>} />
               {/* Settings */}
               <Route path="settings" element={<Settings />} />
+
+              {/* Developer & Marketing Consoles */}
+              <Route path="developer/console" element={<DeveloperConsole />} />
+              <Route path="marketing/campaigns" element={<Campaigns />} />
+              <Route path="marketing/offers" element={<Offers />} />
             </Route>
 
             {/* Fallback */}

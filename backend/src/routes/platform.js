@@ -19,9 +19,22 @@ const upload = require('../middleware/upload');
 
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Apply super_admin restrictions globally to all platform management routes
+// Apply platform restrictions
 router.use(authenticate);
-router.use(authorize('super_admin'));
+
+const authorizePlatformAccess = (req, res, next) => {
+  if (req.user.role === 'super_admin' || req.user.isImpersonated) {
+    return next();
+  }
+  return res.status(403).json({ success: false, message: 'Forbidden: Insufficient permissions' });
+};
+router.use(authorizePlatformAccess);
+
+// ─── Impersonation ────────────────────────────────────────────────────────────
+const impersonationCtrl = require('../controllers/impersonationController');
+router.post('/impersonate', impersonationCtrl.impersonate);
+router.post('/impersonate/exit', impersonationCtrl.exitImpersonation);
+router.get('/impersonate/status', impersonationCtrl.getStatus);
 
 // ─── Capabilities Contract ────────────────────────────────────────────────────
 router.get('/capabilities', capabilitiesCtrl.getCapabilities);

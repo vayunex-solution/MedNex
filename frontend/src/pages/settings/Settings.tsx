@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   Box, Card, CardContent, Typography, Grid, TextField, Button,
-  Tab, Tabs, Divider, CircularProgress, Autocomplete
+  Tab, Tabs, Divider, CircularProgress, Autocomplete, FormControlLabel, Checkbox
 } from '@mui/material';
-import { Save, Business, Receipt, Email } from '@mui/icons-material';
+import { Save, Business, Receipt, Email, PlayArrow } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { companyService, stateService, cityService } from '../../services';
+import { companyService, stateService, cityService, tenantSettingsService } from '../../services';
 
 const Settings: React.FC = () => {
   const queryClient = useQueryClient();
@@ -14,10 +14,16 @@ const Settings: React.FC = () => {
   const [tab, setTab] = useState(0);
   const [form, setForm] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
+  const [testingSmtp, setTestingSmtp] = useState(false);
 
   const { data } = useQuery({
     queryKey: ['company'],
     queryFn: () => companyService.get(),
+  });
+
+  const { data: tenantSettings } = useQuery({
+    queryKey: ['tenantSettings'],
+    queryFn: () => tenantSettingsService.get(),
   });
 
   const { data: statesData } = useQuery({ queryKey: ['states'], queryFn: () => stateService.list() });
@@ -29,15 +35,31 @@ const Settings: React.FC = () => {
   const selectedState = states.find(s => s.name === form.state);
   const cities = selectedState ? allCities.filter(c => c.stateId === selectedState.id) : allCities;
 
-
   React.useEffect(() => {
     const d = data?.data?.data as Record<string, string> | undefined;
-    if (d && !initialized) { setForm(d); setInitialized(true); }
-  }, [data, initialized]);
+    const ts = tenantSettings as Record<string, string> | undefined;
+    if (d && ts && !initialized) {
+      setForm({ ...d, ...ts });
+      setInitialized(true);
+    }
+  }, [data, tenantSettings, initialized]);
 
   const mutation = useMutation({
-    mutationFn: (d: unknown) => companyService.update(d),
-    onSuccess: () => { enqueueSnackbar('Settings saved!', { variant: 'success' }); queryClient.invalidateQueries({ queryKey: ['company'] }); },
+    mutationFn: (d: Record<string, string>) => {
+      if (tab === 2) {
+        const smtpData: Record<string, string> = {};
+        Object.keys(d).forEach(k => {
+          if (k.startsWith('smtp.')) smtpData[k] = d[k];
+        });
+        return tenantSettingsService.update(smtpData);
+      }
+      return companyService.update(d);
+    },
+    onSuccess: () => {
+      enqueueSnackbar('Settings saved!', { variant: 'success' });
+      queryClient.invalidateQueries({ queryKey: ['company'] });
+      queryClient.invalidateQueries({ queryKey: ['tenantSettings'] });
+    },
     onError: () => enqueueSnackbar('Error saving settings', { variant: 'error' }),
   });
 
@@ -124,8 +146,76 @@ const Settings: React.FC = () => {
       {tab === 2 && (
         <Card>
           <CardContent>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Email/SMS Settings</Typography>
-            <Typography variant="body2" color="text.secondary">Email and SMS integration settings will be configured here.</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>SMTP Settings</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Configure your organization's SMTP server to send invoice emails to customers. Leave empty to fallback to platform defaults.
+            </Typography>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>{f('smtp.host', 'SMTP Host (e.g. smtp.gmail.com)')}</Grid>
+              <Grid item xs={12} sm={3}>{f('smtp.port', 'SMTP Port (e.g. 587)', { type: 'number' })}</Grid>
+              <Grid item xs={12} sm={3} sx={{ display: 'flex', alignItems: 'center' }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={form['smtp.secure'] === 'true' || form['smtp.secure'] === true}
+                      onChange={(e) => setForm(prev => ({ ...prev, 'smtp.secure': e.target.checked ? 'true' : 'false' }))}
+                    />
+                  }
+                  label="SSL/TLS (Secure)"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>{f('smtp.user', 'SMTP Username / Email')}</Grid>
+              <Grid item xs={12} sm={6}>{f('smtp.pass', 'SMTP Password', { type: 'password' })}</Grid>
+              <Grid item xs={12} sm={6}>{f('smtp.from', 'Sender Email (e.g. billing@myorg.com)')}</Grid>
+
+              {form['smtp.status'] && (
+                <Grid item xs={12}>
+                  <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2, borderLeft: '4px solid', borderColor: form['smtp.status'] === 'healthy' ? 'success.main' : 'error.main' }}>
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ textTransform: 'capitalize' }}>
+                      SMTP Status: {form['smtp.status']}
+                    </Typography>
+                    {form['smtp.last_success'] && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Last Success: {new Date(form['smtp.last_success']).toLocaleString()}
+                      </Typography>
+                    )}
+                    {form['smtp.last_error'] && (
+                      <Typography variant="caption" color="error.main" display="block">
+                        Last Error: {form['smtp.last_error']}
+                      </Typography>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+
+              <Grid item xs={12} sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={testingSmtp ? <CircularProgress size={16} /> : <PlayArrow />}
+                  disabled={testingSmtp}
+                  onClick={async () => {
+                    setTestingSmtp(true);
+                    try {
+                      await tenantSettingsService.testSmtp({
+                        host: form['smtp.host'],
+                        port: form['smtp.port'],
+                        secure: form['smtp.secure'],
+                        user: form['smtp.user'],
+                        pass: form['smtp.pass'],
+                      });
+                      enqueueSnackbar('SMTP Connection Test Succeeded!', { variant: 'success' });
+                    } catch (err: any) {
+                      enqueueSnackbar(err.response?.data?.message || 'SMTP Connection Failed', { variant: 'error' });
+                    } finally {
+                      setTestingSmtp(false);
+                    }
+                  }}
+                >
+                  Test Connection
+                </Button>
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       )}

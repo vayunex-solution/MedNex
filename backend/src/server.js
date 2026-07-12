@@ -81,9 +81,181 @@ const start = async () => {
         isDeleted TINYINT(1) DEFAULT 0,
         createdAt DATETIME NOT NULL DEFAULT NOW(),
         updatedAt DATETIME NOT NULL DEFAULT NOW()
-      )
     `);
     logger.info('Notifications table verified');
+
+    // Create plat_impersonation_logs
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_impersonation_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sessionId VARCHAR(100) NOT NULL,
+        adminId INT NOT NULL,
+        tenantId INT NOT NULL,
+        reason VARCHAR(255) NOT NULL,
+        ipAddress VARCHAR(45) NOT NULL,
+        userAgent VARCHAR(255) NOT NULL,
+        startedAt DATETIME NOT NULL DEFAULT NOW(),
+        endedAt DATETIME NULL,
+        duration INT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active'
+      )
+    `);
+
+    // Create plat_plans
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_plans (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        price DECIMAL(10,2) NOT NULL DEFAULT 0,
+        createdAt DATETIME NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create plat_plan_features
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_plan_features (
+        planId VARCHAR(50) NOT NULL,
+        featureKey VARCHAR(100) NOT NULL,
+        PRIMARY KEY (planId, featureKey)
+      )
+    `);
+
+    // Create plat_tenant_feature_overrides
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_tenant_feature_overrides (
+        tenantId INT NOT NULL,
+        featureKey VARCHAR(100) NOT NULL,
+        isEnabled TINYINT(1) NOT NULL DEFAULT 0,
+        PRIMARY KEY (tenantId, featureKey)
+      )
+    `);
+
+    // Create plat_outbox_jobs
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_outbox_jobs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        jobType VARCHAR(100) NOT NULL,
+        payload TEXT NOT NULL,
+        priority INT NOT NULL DEFAULT 0,
+        status VARCHAR(30) NOT NULL DEFAULT 'pending',
+        attempts INT NOT NULL DEFAULT 0,
+        maxAttempts INT NOT NULL DEFAULT 5,
+        nextRunAt DATETIME NOT NULL DEFAULT NOW(),
+        lockedAt DATETIME NULL,
+        lockedBy VARCHAR(100) NULL,
+        createdAt DATETIME NOT NULL DEFAULT NOW(),
+        updatedAt DATETIME NOT NULL DEFAULT NOW(),
+        finishedAt DATETIME NULL,
+        lastError TEXT NULL
+      )
+    `);
+
+    // Create plat_api_keys
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_api_keys (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenantId INT NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        keyHash VARCHAR(64) NOT NULL,
+        keyPrefix VARCHAR(12) NOT NULL,
+        scopes TEXT NOT NULL,
+        rateLimit INT NOT NULL DEFAULT 60,
+        expiresAt DATETIME NULL,
+        revokedAt DATETIME NULL,
+        lastUsedAt DATETIME NULL,
+        createdBy INT NOT NULL,
+        createdAt DATETIME NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create plat_webhooks
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_webhooks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenantId INT NOT NULL,
+        url VARCHAR(255) NOT NULL,
+        secretKey VARCHAR(100) NOT NULL,
+        events TEXT NOT NULL,
+        isActive TINYINT(1) DEFAULT 1,
+        createdAt DATETIME NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create plat_offers
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_offers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenantId INT NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        description TEXT NULL,
+        type ENUM('flat', 'percentage', 'buy_x_get_y') NOT NULL,
+        value DECIMAL(10,2) NOT NULL DEFAULT 0,
+        minBillAmount DECIMAL(10,2) DEFAULT 0,
+        holderType VARCHAR(50) DEFAULT 'General',
+        startDate DATETIME NOT NULL,
+        endDate DATETIME NOT NULL,
+        isActive TINYINT(1) DEFAULT 1,
+        createdAt DATETIME NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create plat_email_campaigns
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_email_campaigns (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tenantId INT NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        subject VARCHAR(200) NOT NULL,
+        body TEXT NOT NULL,
+        segment VARCHAR(50) NOT NULL, -- 'VIP', 'Inactive', 'Doctors', 'All' etc.
+        status VARCHAR(20) NOT NULL DEFAULT 'draft', -- 'draft', 'scheduled', 'sending', 'completed'
+        sentCount INT NOT NULL DEFAULT 0,
+        deliveredCount INT NOT NULL DEFAULT 0,
+        failedCount INT NOT NULL DEFAULT 0,
+        scheduledAt DATETIME NULL,
+        createdAt DATETIME NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create plat_email_campaign_logs
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS plat_email_campaign_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        campaignId INT NOT NULL,
+        recipientEmail VARCHAR(150) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending', -- 'pending', 'sent', 'delivered', 'failed'
+        sentAt DATETIME NULL,
+        lastError TEXT NULL
+      )
+    `);
+
+    // Seed default plans if empty
+    const [plansCount] = await sequelize.query('SELECT COUNT(*) as count FROM plat_plans');
+    if (plansCount[0].count === 0) {
+      await sequelize.query(`
+        INSERT INTO plat_plans (id, name, price) VALUES
+        ('Starter', 'Starter Plan', 19.00),
+        ('Professional', 'Professional Plan', 49.00),
+        ('Enterprise', 'Enterprise Plan', 99.00)
+      `);
+      await sequelize.query(`
+        INSERT INTO plat_plan_features (planId, featureKey) VALUES
+        ('Starter', 'pos-billing'),
+        ('Starter', 'inventory-tracking'),
+        ('Professional', 'pos-billing'),
+        ('Professional', 'inventory-tracking'),
+        ('Professional', 'reports-export'),
+        ('Professional', 'email-notifications'),
+        ('Enterprise', 'pos-billing'),
+        ('Enterprise', 'inventory-tracking'),
+        ('Enterprise', 'reports-export'),
+        ('Enterprise', 'email-notifications'),
+        ('Enterprise', 'email-marketing'),
+        ('Enterprise', 'developer-apis')
+      `);
+      logger.info('SaaS Plans seeded successfully');
+    }
+
     const outboxDispatcher = require('./shared/events/outboxDispatcher');
     outboxDispatcher.start(5000);
     app.listen(PORT, () => logger.info(`MedNex server running on port ${PORT}`));

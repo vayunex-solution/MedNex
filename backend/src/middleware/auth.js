@@ -38,6 +38,29 @@ const authenticate = async (req, res, next) => {
       if (localErr.name === 'TokenExpiredError') return unauthorized(res, 'Token expired');
       return unauthorized(res, 'Invalid token');
     }
+
+    // ─── Super Admin Impersonation Context Overwrite ──────────────────────────
+    if (decoded.originalAdminId) {
+      req.user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: 'admin',
+        tenantId: decoded.impersonatedTenantId,
+        originalAdminId: decoded.originalAdminId,
+        isImpersonated: true,
+        impersonationSessionId: decoded.sessionId,
+      };
+
+      const RequestContext = require('../shared/core/context');
+      RequestContext.userId = decoded.id;
+      RequestContext.tenantId = decoded.impersonatedTenantId;
+      RequestContext.branchId = null;
+      RequestContext.businessId = null;
+      RequestContext.permissions = ['admin'];
+      RequestContext.features = ['billing', 'inventory'];
+
+      return next();
+    }
     
     // Check if it is a V1 Token (contains sessionId)
     if (decoded.sessionId) {

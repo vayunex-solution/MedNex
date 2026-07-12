@@ -121,6 +121,31 @@ const getMe = async (req, res) => {
   const user = rows[0];
   if (user) {
     user.phone = null; // Provide fallback to avoid breaking frontend expectations
+    
+    // Resolve active subscription plan
+    const [subs] = await User.sequelize.query(
+      'SELECT planId FROM plat_subscriptions WHERE tenantId = ? AND status = "active" LIMIT 1',
+      { replacements: [user.id] } // For simplicity fallback to user.id or resolve membership
+    );
+    user.planId = subs[0]?.planId || 'Starter';
+
+    if (req.user.isImpersonated) {
+      user.isImpersonated = true;
+      user.tenantId = req.user.tenantId;
+      // Get target tenant name
+      const [tenants] = await User.sequelize.query(
+        'SELECT name FROM plat_tenants WHERE id = ? LIMIT 1',
+        { replacements: [req.user.tenantId] }
+      );
+      user.impersonatedTenantName = tenants[0]?.name || 'Unknown Org';
+      
+      // Override plan for impersonated tenant
+      const [impSubs] = await User.sequelize.query(
+        'SELECT planId FROM plat_subscriptions WHERE tenantId = ? AND status = "active" LIMIT 1',
+        { replacements: [req.user.tenantId] }
+      );
+      user.planId = impSubs[0]?.planId || 'Starter';
+    }
   }
   return success(res, user);
 };

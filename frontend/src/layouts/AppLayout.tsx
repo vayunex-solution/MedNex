@@ -4,6 +4,7 @@ import {
   List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Menu, MenuItem, Divider, Tooltip, Badge,
   Collapse, useMediaQuery, useTheme as useMuiTheme,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
 } from '@mui/material';
 import {
   Menu as MenuIcon, Dashboard, People, LocalPharmacy,
@@ -17,10 +18,11 @@ import {
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { toggleTheme } from '../redux/slices/themeSlice';
-import { logout } from '../redux/slices/authSlice';
+import { logout, setCredentials } from '../redux/slices/authSlice';
 import { authService } from '../services';
 import NotificationPanel, { NotificationBell } from '../components/NotificationPanel';
 import { useNotifications } from '../hooks/useNotifications';
+import api from '../services/api';
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 72;
@@ -35,9 +37,11 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
   {
-    label: 'Masters', icon: <BusinessCenter />, children: [
+    label: 'Masters',
+    icon: <CategoryOutlined />,
+    children: [
       { label: 'Customers', icon: <People />, path: '/masters/customers' },
-      { label: 'Suppliers', icon: <Store />, path: '/masters/suppliers' },
+      { label: 'Suppliers', icon: <People />, path: '/masters/suppliers' },
       { label: 'Doctors', icon: <LocalHospital />, path: '/masters/doctors' },
       { label: 'Medicines', icon: <LocalPharmacy />, path: '/masters/medicines' },
       { label: 'Categories', icon: <CategoryOutlined />, path: '/masters/categories' },
@@ -45,42 +49,63 @@ const navItems: NavItem[] = [
       { label: 'HSN Codes', icon: <QrCode />, path: '/masters/hsn' },
       { label: 'GST Slabs', icon: <AccountBalance />, path: '/masters/gst' },
       { label: 'Units', icon: <CategoryOutlined />, path: '/masters/units' },
-      { label: 'Racks', icon: <Store />, path: '/masters/racks' },
+      { label: 'Racks', icon: <CategoryOutlined />, path: '/masters/racks' },
       { label: 'States', icon: <CategoryOutlined />, path: '/masters/states' },
-      { label: 'Cities', icon: <Store />, path: '/masters/cities' },
-      { label: 'Users', icon: <Person />, path: '/masters/users' },
+      { label: 'Cities', icon: <CategoryOutlined />, path: '/masters/cities' },
+      { label: 'Users', icon: <People />, path: '/masters/users' },
+      { label: 'Platform Tenants', icon: <Store />, path: '/masters/tenants' },
     ],
   },
   { label: 'Purchase Entry', icon: <ShoppingCart />, path: '/purchase' },
   { label: 'Sales Billing', icon: <Receipt />, path: '/sales' },
   {
-    label: 'Stock', icon: <Inventory />, children: [
+    label: 'Stock Manager',
+    icon: <Inventory />,
+    children: [
       { label: 'Current Stock', icon: <Inventory />, path: '/stock/current' },
-      { label: 'Batch Wise', icon: <Inventory />, path: '/stock/batch-wise' },
-      { label: 'Expiry Stock', icon: <Warning />, path: '/stock/expiry' },
+      { label: 'Batch-wise Stock', icon: <Inventory />, path: '/stock/batch-wise' },
+      { label: 'Expiry Register', icon: <Warning />, path: '/stock/expiry' },
       { label: 'Near Expiry', icon: <Warning />, path: '/stock/near-expiry' },
-      { label: 'Adjustment', icon: <TrendingUp />, path: '/stock/adjustment' },
     ],
   },
   {
-    label: 'Finance', icon: <AccountBalance />, children: [
-      { label: 'Cash/Bank Entry', icon: <Receipt />, path: '/finance/cash-bank' },
-      { label: 'Journal Voucher', icon: <BusinessCenter />, path: '/finance/journal' },
+    label: 'Financial Books',
+    icon: <AccountBalance />,
+    children: [
+      { label: 'Cash/Bank Entry', icon: <AccountBalance />, path: '/finance/cash-bank' },
+      { label: 'Journal Voucher', icon: <AccountBalance />, path: '/finance/journal' },
     ],
   },
   {
-    label: 'Reports', icon: <Assessment />, children: [
-      { label: 'Sales Report', icon: <TrendingUp />, path: '/reports/sales' },
-      { label: 'Purchase Report', icon: <ShoppingCart />, path: '/reports/purchase' },
-      { label: 'GST Report', icon: <AccountBalance />, path: '/reports/gst' },
-      { label: 'Profit Report', icon: <TrendingUp />, path: '/reports/profit' },
-      { label: 'Customer Ledger', icon: <People />, path: '/reports/customer-ledger' },
-      { label: 'Supplier Ledger', icon: <Store />, path: '/reports/supplier-ledger' },
-      { label: 'Item Ledger', icon: <Inventory />, path: '/reports/item-ledger' },
-      { label: 'Cash Book', icon: <AccountBalance />, path: '/reports/cash-book' },
-      { label: 'Bank Book', icon: <AccountBalance />, path: '/reports/bank-book' },
-      { label: 'Journal Book', icon: <BusinessCenter />, path: '/reports/journal-book' },
+    label: 'Reports',
+    icon: <Assessment />,
+    children: [
+      { label: 'Sales Report', icon: <Assessment />, path: '/reports/sales' },
+      { label: 'Purchase Report', icon: <Assessment />, path: '/reports/purchase' },
+      { label: 'GST Report', icon: <Assessment />, path: '/reports/gst' },
+      { label: 'Profit Report', icon: <Assessment />, path: '/reports/profit' },
+      { label: 'Customer Ledger', icon: <Assessment />, path: '/reports/customer-ledger' },
+      { label: 'Supplier Ledger', icon: <Assessment />, path: '/reports/supplier-ledger' },
+      { label: 'Item Ledger', icon: <Assessment />, path: '/reports/item-ledger' },
+      { label: 'Cash Book', icon: <Assessment />, path: '/reports/cash-book' },
+      { label: 'Bank Book', icon: <Assessment />, path: '/reports/bank-book' },
+      { label: 'Journal Book', icon: <Assessment />, path: '/reports/journal-book' },
       { label: 'Audit Trail', icon: <Assessment />, path: '/reports/audit-trail' },
+    ],
+  },
+  {
+    label: 'Marketing Console',
+    icon: <TrendingUp />,
+    children: [
+      { label: 'Email Campaigns', icon: <Email />, path: '/marketing/campaigns' },
+      { label: 'Offers & Promos', icon: <TrendingUp />, path: '/marketing/offers' },
+    ],
+  },
+  {
+    label: 'Developer Tools',
+    icon: <Settings />,
+    children: [
+      { label: 'API & Webhooks', icon: <Settings />, path: '/developer/console' },
     ],
   },
   { label: 'Settings', icon: <Settings />, path: '/settings' },
@@ -101,6 +126,13 @@ const AppLayout: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifOpen, setNotifOpen] = useState(false);
 
+  // Impersonation States
+  const [impDialogOpen, setImpDialogOpen] = useState(false);
+  const [impTenantId, setImpTenantId] = useState<number | null>(null);
+  const [impTenantName, setImpTenantName] = useState('');
+  const [impReason, setImpReason] = useState('');
+  const [tenantsList, setTenantsList] = useState<{ id: number; name: string }[]>([]);
+
   // Real-time notification system
   const notif = useNotifications();
 
@@ -116,7 +148,7 @@ const AppLayout: React.FC = () => {
       ];
     }
 
-    return navItems.map(item => {
+    let result = navItems.map(item => {
       if (item.label === 'Masters') {
         let filteredChildren = [...(item.children || [])];
         // Non-super_admins can never see Platform Tenants
@@ -129,12 +161,81 @@ const AppLayout: React.FC = () => {
       }
       return item;
     });
+
+    // Dynamic Plan-based Feature checks (from resolved planId)
+    const plan = user?.planId || 'Starter';
+    if (plan === 'Starter') {
+      // Starter: Hide Marketing and Developer tools
+      result = result.filter(item => item.label !== 'Marketing Console' && item.label !== 'Developer Tools');
+    } else if (plan === 'Professional') {
+      // Professional: Allow Marketing but hide Developer tools
+      result = result.filter(item => item.label !== 'Developer Tools');
+    }
+
+    return result;
   }, [user]);
 
   const drawerWidth = collapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((i) => i !== label) : [...prev, label]);
+  };
+
+  React.useEffect(() => {
+    if (user?.role === 'super_admin') {
+      api.get('/platform/tenants?limit=100')
+        .then(res => {
+          setTenantsList(res.data?.data || []);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const handleImpersonateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!impTenantId || !impReason) return;
+    try {
+      const res = await api.post('/platform/impersonate', {
+        tenantId: impTenantId,
+        reason: impReason
+      });
+      const token = res.data?.data?.token;
+      if (token) {
+        localStorage.setItem('accessToken', token);
+        const profileRes = await api.get('/auth/me');
+        dispatch(setCredentials({
+          user: profileRes.data.data,
+          accessToken: token,
+          refreshToken: localStorage.getItem('refreshToken') || '',
+        }));
+        setImpDialogOpen(false);
+        setImpReason('');
+        navigate('/dashboard');
+        window.location.reload();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to start impersonation');
+    }
+  };
+
+  const handleExitImpersonation = async () => {
+    try {
+      const res = await api.post('/platform/impersonate/exit');
+      const token = res.data?.data?.token;
+      if (token) {
+        localStorage.setItem('accessToken', token);
+        const profileRes = await api.get('/auth/me');
+        dispatch(setCredentials({
+          user: profileRes.data.data,
+          accessToken: token,
+          refreshToken: localStorage.getItem('refreshToken') || '',
+        }));
+        navigate('/masters/tenants');
+        window.location.reload();
+      }
+    } catch (err) {
+      alert('Failed to exit impersonation');
+    }
   };
 
   const handleLogout = async () => {
@@ -270,6 +371,36 @@ const AppLayout: React.FC = () => {
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {/* AppBar */}
         <AppBar position="sticky" elevation={0} sx={{ zIndex: 1100 }}>
+          {/* Impersonation Warning Banner */}
+          {user?.isImpersonated && (
+            <Box
+              sx={{
+                bgcolor: 'warning.main',
+                color: 'warning.contrastText',
+                px: 3,
+                py: 0.75,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+              }}
+            >
+              <Typography variant="body2" fontWeight={800} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span>⚠️</span> YOU ARE CURRENTLY IMPERSONATING: {user.impersonatedTenantName || 'Tenant'} (ADMIN VIEW)
+              </Typography>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={handleExitImpersonation}
+                sx={{ py: 0.25, px: 2, height: 26, fontSize: '0.72rem', fontWeight: 800 }}
+              >
+                Exit Impersonation
+              </Button>
+            </Box>
+          )}
+
           <Toolbar sx={{ gap: 1 }}>
             {isMobile && (
               <IconButton onClick={() => setMobileOpen(true)} edge="start">
@@ -304,6 +435,12 @@ const AppLayout: React.FC = () => {
                 <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
               </Box>
               <Divider />
+              {user?.role === 'super_admin' && (
+                <MenuItem onClick={() => { setImpDialogOpen(true); setAnchorEl(null); }}>
+                  <ListItemIcon><Store fontSize="small" /></ListItemIcon>
+                  Switch Tenant
+                </MenuItem>
+              )}
               <MenuItem onClick={() => { navigate('/settings'); setAnchorEl(null); }}>
                 <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
                 Settings
@@ -313,6 +450,56 @@ const AppLayout: React.FC = () => {
                 Logout
               </MenuItem>
             </Menu>
+
+            {/* Impersonation Trigger Dialog */}
+            <Dialog open={impDialogOpen} onClose={() => setImpDialogOpen(false)} maxWidth="xs" fullWidth>
+              <DialogTitle sx={{ fontWeight: 800 }}>Impersonate Tenant</DialogTitle>
+              <form onSubmit={handleImpersonateSubmit}>
+                <DialogContent>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Switch session context to view and manage settings of the selected organization. This action will be logged.
+                  </Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Choose Organization"
+                    value={impTenantId || ''}
+                    onChange={(e) => {
+                      const id = parseInt(e.target.value);
+                      setImpTenantId(id);
+                      const t = tenantsList.find(x => x.id === id);
+                      if (t) setImpTenantName(t.name);
+                    }}
+                    SelectProps={{ native: true }}
+                    margin="dense"
+                    size="small"
+                    required
+                  >
+                    <option value="" disabled>Select Tenant</option>
+                    {tenantsList.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </TextField>
+                  <TextField
+                    fullWidth
+                    label="Reason for Impersonation"
+                    value={impReason}
+                    onChange={(e) => setImpReason(e.target.value)}
+                    margin="dense"
+                    size="small"
+                    required
+                    sx={{ mt: 2 }}
+                    placeholder="e.g. Debugging invoice sequence mismatch"
+                  />
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                  <Button onClick={() => setImpDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" variant="contained" color="warning" disabled={!impTenantId || !impReason}>
+                    Impersonate
+                  </Button>
+                </DialogActions>
+              </form>
+            </Dialog>
           </Toolbar>
 
           {/* Real-time Notification Panel */}

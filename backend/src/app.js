@@ -82,11 +82,13 @@ app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() 
 const v1Routes = require('./routes/v1');
 const v2Routes = require('./routes/v2');
 app.use('/api/v1', v1Routes);
+app.use('/api/v1/external', require('./routes/externalRoutes'));
 app.use('/api/v2', v2Routes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api', masterRoutes);
 app.use('/api', apiRoutes);
+app.use('/api', require('./routes/platformConsoleRoutes'));
 app.use('/api/platform', require('./routes/platform'));
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
