@@ -61,13 +61,12 @@ module.exports = {
     await queryInterface.bulkInsert('plat_platform_settings', settings);
 
     // 5. Seed default Super Admin user if not exists
-    const [users] = await queryInterface.sequelize.query(`SELECT id FROM users WHERE email='admin@mednex.com';`);
+    const [users] = await queryInterface.sequelize.query(`SELECT id FROM users WHERE email='yashyr0725@gmail.com';`);
     if (users.length === 0) {
-      const hashedPassword = await bcrypt.hash('Admin@123', 12);
+      const hashedPassword = await bcrypt.hash('yash00725', 12);
       await queryInterface.bulkInsert('users', [{
-        id: 1,
         name: 'Super Admin',
-        email: 'admin@mednex.com',
+        email: 'yashyr0725@gmail.com',
         password: hashedPassword,
         role: 'super_admin',
         isActive: true,
@@ -77,7 +76,7 @@ module.exports = {
       }]);
     } else {
       // Ensure role is super_admin
-      await queryInterface.sequelize.query(`UPDATE users SET role='super_admin' WHERE email='admin@mednex.com';`);
+      await queryInterface.sequelize.query(`UPDATE users SET role='super_admin' WHERE email='yashyr0725@gmail.com';`);
     }
   },
 
