@@ -13,7 +13,7 @@ import {
   KeyboardArrowDown, KeyboardArrowUp, Logout, Person,
   LocalHospital, CategoryOutlined,
   BusinessCenter, AccountBalance, QrCode, Store,
-  Warning, TrendingUp,
+  Warning, TrendingUp, Email,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';

@@ -5,13 +5,16 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Grid
 } from '@mui/material';
 import {
-  Add, Edit, Search, Refresh, FileDownload, Block, CheckCircle
+  Add, Edit, Search, Refresh, FileDownload, Block, CheckCircle, Visibility
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import * as XLSX from 'xlsx';
 import { platformTenantService } from '../../services';
+import api from '../../services/api';
+import { useAppDispatch } from '../../hooks/useRedux';
+import { setCredentials } from '../../redux/slices/authSlice';
 
 // ─── Tenant Provisioning Form Component ───────────────────────────────────────
 interface TenantFormProps {
@@ -109,6 +112,7 @@ const TenantForm: React.FC<TenantFormProps> = ({ open, onClose }) => {
 
 // ─── Main Tenants Management Screen ──────────────────────────────────────────
 const Tenants: React.FC = () => {
+  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [search, setSearch] = useState('');
@@ -164,17 +168,47 @@ const Tenants: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 180,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => {
-        const { uuid, status } = params.row;
+        const { id, uuid, status, name } = params.row;
+        
+        const handleImpersonateClick = async () => {
+          const reason = window.prompt(`Enter reason for impersonating ${name}:`);
+          if (!reason) return;
+          try {
+            const res = await api.post('/platform/impersonate', {
+              tenantId: id,
+              reason: reason
+            });
+            const token = res.data?.data?.token;
+            if (token) {
+              localStorage.setItem('accessToken', token);
+              const profileRes = await api.get('/auth/me');
+              dispatch(setCredentials({
+                user: profileRes.data.data,
+                accessToken: token,
+                refreshToken: localStorage.getItem('refreshToken') || '',
+              }));
+              window.location.reload();
+            }
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to start impersonation');
+          }
+        };
+
         return (
-          <Box>
+          <Box display="flex" gap={0.5}>
+            <Tooltip title="Impersonate Tenant Context">
+              <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleImpersonateClick(); }}>
+                <Visibility fontSize="small" />
+              </IconButton>
+            </Tooltip>
             {status === 'active' ? (
               <Tooltip title="Suspend Tenant">
                 <IconButton 
                   size="small" color="warning" 
-                  onClick={() => toggleStatusMutation.mutate({ uuid, action: 'suspend' })}
+                  onClick={(e) => { e.stopPropagation(); toggleStatusMutation.mutate({ uuid, action: 'suspend' }); }}
                 >
                   <Block fontSize="small" />
                 </IconButton>
@@ -183,7 +217,7 @@ const Tenants: React.FC = () => {
               <Tooltip title="Activate Tenant">
                 <IconButton 
                   size="small" color="success" 
-                  onClick={() => toggleStatusMutation.mutate({ uuid, action: 'activate' })}
+                  onClick={(e) => { e.stopPropagation(); toggleStatusMutation.mutate({ uuid, action: 'activate' }); }}
                 >
                   <CheckCircle fontSize="small" />
                 </IconButton>

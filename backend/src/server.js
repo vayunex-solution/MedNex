@@ -79,8 +79,8 @@ const start = async () => {
         link VARCHAR(300) DEFAULT NULL,
         isRead TINYINT(1) DEFAULT 0,
         isDeleted TINYINT(1) DEFAULT 0,
-        createdAt DATETIME NOT NULL DEFAULT NOW(),
         updatedAt DATETIME NOT NULL DEFAULT NOW()
+      )
     `);
     logger.info('Notifications table verified');
 
