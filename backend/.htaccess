@@ -1,0 +1,13 @@
+RewriteEngine On
+
+# Handle CORS Preflight (OPTIONS) requests - return 204 immediately
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=204,L]
+
+<IfModule mod_headers.c>
+  Header always set Access-Control-Allow-Origin "https://mednex.vayunexsolution.com"
+  Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+  Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, X-Correlation-ID"
+  Header always set Access-Control-Allow-Credentials "true"
+  Header always set Access-Control-Max-Age "86400"
+</IfModule>
