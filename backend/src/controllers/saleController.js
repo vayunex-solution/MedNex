@@ -108,7 +108,10 @@ const update = async (req, res) => {
 
     const invoice = await SaleInvoice.findOne({
       where: { id, isDeleted: false },
-      include: [{ model: SaleItem, as: 'items', include: [{ model: Medicine, as: 'medicine', attributes: ['name'] }] }],
+      include: [
+        { model: Customer, as: 'customer', attributes: ['name'] },
+        { model: SaleItem, as: 'items', include: [{ model: Medicine, as: 'medicine', attributes: ['name'] }] }
+      ],
       transaction: t,
     });
     if (!invoice) {
@@ -178,6 +181,14 @@ const update = async (req, res) => {
     // Build Audit Log Details
     const auditDetails = [];
     auditDetails.push(`Invoice: ${invoice.invoiceNo}`);
+    
+    // Compare Customer name
+    if (invoiceData.customerId && Number(invoiceData.customerId) !== Number(invoice.customerId)) {
+      const oldCustName = invoice.customer?.name || 'Walk-in';
+      const newCust = await Customer.findByPk(invoiceData.customerId, { transaction: t });
+      auditDetails.push(`Customer: ${oldCustName} -> ${newCust?.name || 'Walk-in'}`);
+    }
+
     auditDetails.push(`Date: ${invoice.invoiceDate} -> ${invoiceData.invoiceDate || invoice.invoiceDate}`);
     auditDetails.push(`Payment Mode: ${invoice.paymentMode} -> ${invoiceData.paymentMode || invoice.paymentMode}`);
     auditDetails.push(`Subtotal: ₹${invoice.subtotal.toFixed(2)} -> ₹${subtotal.toFixed(2)}`);

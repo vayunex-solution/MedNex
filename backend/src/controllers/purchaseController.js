@@ -82,7 +82,10 @@ const update = async (req, res) => {
 
     const invoice = await PurchaseInvoice.findOne({
       where: { id, isDeleted: false },
-      include: [{ model: PurchaseItem, as: 'items', include: [{ model: Medicine, as: 'medicine', attributes: ['name'] }] }],
+      include: [
+        { model: Supplier, as: 'supplier', attributes: ['name'] },
+        { model: PurchaseItem, as: 'items', include: [{ model: Medicine, as: 'medicine', attributes: ['name'] }] }
+      ],
       transaction: t,
     });
     if (!invoice) {
@@ -130,6 +133,14 @@ const update = async (req, res) => {
     // Build Audit Log Details
     const auditDetails = [];
     auditDetails.push(`Purchase Invoice: ${invoice.invoiceNo}`);
+
+    // Compare Supplier name
+    if (invoiceData.supplierId && Number(invoiceData.supplierId) !== Number(invoice.supplierId)) {
+      const oldSuppName = invoice.supplier?.name || 'Walk-in';
+      const newSupp = await Supplier.findByPk(invoiceData.supplierId, { transaction: t });
+      auditDetails.push(`Supplier: ${oldSuppName} -> ${newSupp?.name || 'Walk-in'}`);
+    }
+
     auditDetails.push(`Date: ${invoice.invoiceDate} -> ${invoiceData.invoiceDate || invoice.invoiceDate}`);
     auditDetails.push(`Supplier Invoice No: ${invoice.supplierInvoiceNo} -> ${invoiceData.supplierInvoiceNo || invoice.supplierInvoiceNo}`);
     auditDetails.push(`Payment Mode: ${invoice.paymentMode} -> ${invoiceData.paymentMode || invoice.paymentMode}`);
