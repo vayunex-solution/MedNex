@@ -5,6 +5,25 @@ const { Op, fn, col, literal } = require('sequelize');
 const { success } = require('../helpers/response');
 
 const getStats = async (req, res) => {
+  if (req.user && req.user.role === 'super_admin') {
+    const Tenant = require('../platform/tenant/tenant.model');
+    const User = require('../platform/user/user.model');
+
+    const [totalTenants, activeTenants, totalUsers] = await Promise.all([
+      Tenant.count({ where: { isDeleted: false } }),
+      Tenant.count({ where: { status: 'active', isDeleted: false } }),
+      User.count({ where: { isDeleted: false } }),
+    ]);
+
+    return success(res, {
+      isPlatform: true,
+      totalTenants,
+      activeTenants,
+      suspendedTenants: totalTenants - activeTenants,
+      totalUsers,
+    });
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 

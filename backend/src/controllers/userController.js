@@ -14,9 +14,10 @@ const getAll = async (req, res) => {
   const where = buildWhere(req.query, ['name', 'email', 'phone'], { isDeleted: false });
 
   // Tenant Isolation: Non-super_admins only see users belonging to their tenant
-  if (req.user && req.user.role !== 'super_admin' && req.user.tenantId) {
+  if (req.user && req.user.role !== 'super_admin') {
+    const tenantId = req.user.tenantId || -1;
     const memberships = await UserMembership.findAll({
-      where: { tenantId: req.user.tenantId, status: 'active' },
+      where: { tenantId, status: 'active' },
       attributes: ['userId']
     });
     const userIds = memberships.map(m => m.userId);
@@ -37,9 +38,10 @@ const getById = async (req, res) => {
   const where = { id: req.params.id, isDeleted: false };
 
   // Tenant Isolation Check
-  if (req.user && req.user.role !== 'super_admin' && req.user.tenantId) {
+  if (req.user && req.user.role !== 'super_admin') {
+    const tenantId = req.user.tenantId || -1;
     const membership = await UserMembership.findOne({
-      where: { userId: req.params.id, tenantId: req.user.tenantId, status: 'active' }
+      where: { userId: req.params.id, tenantId, status: 'active' }
     });
     if (!membership) return forbidden(res, 'You do not have permission to access this user');
   }
@@ -95,9 +97,10 @@ const update = async (req, res) => {
   if (!record) return notFound(res);
 
   // Tenant Isolation Check
-  if (req.user && req.user.role !== 'super_admin' && req.user.tenantId) {
+  if (req.user && req.user.role !== 'super_admin') {
+    const tenantId = req.user.tenantId || -1;
     const membership = await UserMembership.findOne({
-      where: { userId: record.id, tenantId: req.user.tenantId, status: 'active' }
+      where: { userId: record.id, tenantId, status: 'active' }
     });
     if (!membership) return forbidden(res, 'You do not have permission to modify this user');
   }
@@ -145,9 +148,10 @@ const remove = async (req, res) => {
   if (!record) return notFound(res);
 
   // Tenant Isolation Check
-  if (req.user && req.user.role !== 'super_admin' && req.user.tenantId) {
+  if (req.user && req.user.role !== 'super_admin') {
+    const tenantId = req.user.tenantId || -1;
     const membership = await UserMembership.findOne({
-      where: { userId: record.id, tenantId: req.user.tenantId, status: 'active' }
+      where: { userId: record.id, tenantId, status: 'active' }
     });
     if (!membership) return forbidden(res, 'You do not have permission to delete this user');
   }

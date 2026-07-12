@@ -2,14 +2,15 @@ import React from 'react';
 import {
   Grid, Card, CardContent, Typography, Box, Chip,
   Table, TableBody, TableCell, TableHead, TableRow, Paper,
-  Skeleton, CircularProgress,
+  Skeleton, CircularProgress, Button,
 } from '@mui/material';
 import {
   TrendingUp, ShoppingCart, AttachMoney, Inventory,
-  Warning, People, Business,
+  Warning, People, Business, CheckCircle,
   ArrowUpward, ArrowDownward,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer, ComposedChart, Bar, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -89,6 +90,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 };
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => dashboardService.getStats(),
@@ -108,6 +110,53 @@ const Dashboard: React.FC = () => {
   });
 
   const stats: DashboardStats = statsData?.data?.data || {} as DashboardStats;
+
+  // Platform super admin custom control panel view
+  if (statsData?.data?.data?.isPlatform) {
+    const platformStats = statsData.data.data;
+    const platformCards = [
+      { title: "Registered Tenants", value: platformStats.totalTenants || 0, icon: <Business sx={{ fontSize: 26 }} />, bgGradient: 'linear-gradient(135deg, #1565C0 0%, #0288D1 100%)', subtitle: 'Total pharmacies on platform', isLoading: statsLoading },
+      { title: "Active Tenants", value: platformStats.activeTenants || 0, icon: <CheckCircle sx={{ fontSize: 26 }} />, bgGradient: 'linear-gradient(135deg, #2E7D32 0%, #43A047 100%)', subtitle: 'Live & operating', isLoading: statsLoading },
+      { title: "Suspended Tenants", value: platformStats.suspendedTenants || 0, icon: <Warning sx={{ fontSize: 26 }} />, bgGradient: 'linear-gradient(135deg, #C62828 0%, #EF5350 100%)', subtitle: 'Access restricted', isLoading: statsLoading },
+      { title: 'Total Platform Users', value: platformStats.totalUsers || 0, icon: <People sx={{ fontSize: 26 }} />, bgGradient: 'linear-gradient(135deg, #4527A0 0%, #5E35B1 100%)', subtitle: 'Registered accounts', isLoading: statsLoading },
+    ];
+
+    return (
+      <Box>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" fontWeight={800} gutterBottom>Platform Control Panel</Typography>
+          <Typography variant="body2" color="text.secondary">
+            System overview — {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </Typography>
+        </Box>
+
+        <Grid container spacing={2.5} sx={{ mb: 3 }}>
+          {platformCards.map((card) => (
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={card.title}>
+              <StatCard {...card} />
+            </Grid>
+          ))}
+        </Grid>
+
+        <Card sx={{ mt: 4, p: 3, background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#f8fafc', borderRadius: 4 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h5" fontWeight={700}>Welcome to MedNex Super Admin Console</Typography>
+            <Typography variant="body1" sx={{ color: '#cbd5e1', maxWidth: 600 }}>
+              Use the sidebar links to manage active tenants, provision new organizations, or manage platform administrators.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Button variant="contained" color="primary" onClick={() => navigate('/masters/tenants')} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                Manage Tenants
+              </Button>
+              <Button variant="outlined" sx={{ color: '#fff', borderColor: '#475569', textTransform: 'none', borderRadius: 2 }} onClick={() => navigate('/masters/users')}>
+                Manage Users
+              </Button>
+            </Box>
+          </Box>
+        </Card>
+      </Box>
+    );
+  }
   const chartsLoading = salesChartLoading || purchaseChartLoading;
 
   const chartData = MONTHS.map((month, i) => {

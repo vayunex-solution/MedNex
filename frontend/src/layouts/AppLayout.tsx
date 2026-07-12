@@ -99,16 +99,23 @@ const AppLayout: React.FC = () => {
 
   // Dynamically filter navItems to include Tenants management for super_admin
   const filteredNavItems = React.useMemo(() => {
+    if (user?.role === 'super_admin') {
+      return [
+        { label: 'Platform Dashboard', icon: <Dashboard />, path: '/dashboard' },
+        { label: 'Platform Tenants', icon: <Store />, path: '/masters/tenants' },
+        { label: 'Platform Users', icon: <People />, path: '/masters/users' },
+        { label: 'Platform Settings', icon: <Settings />, path: '/settings' },
+      ];
+    }
+
     return navItems.map(item => {
       if (item.label === 'Masters') {
-        const filteredChildren = [...(item.children || [])];
-        if (user?.role === 'super_admin' && !filteredChildren.some(c => c.label === 'Platform Tenants')) {
-          // Insert "Platform Tenants" link
-          filteredChildren.push({
-            label: 'Platform Tenants',
-            icon: <Store />,
-            path: '/masters/tenants'
-          });
+        let filteredChildren = [...(item.children || [])];
+        // Non-super_admins can never see Platform Tenants
+        filteredChildren = filteredChildren.filter(c => c.label !== 'Platform Tenants');
+        // Hide Users list for non-admin roles (e.g. pharmacists, cashiers)
+        if (user?.role !== 'admin') {
+          filteredChildren = filteredChildren.filter(c => c.label !== 'Users');
         }
         return { ...item, children: filteredChildren };
       }
