@@ -115,10 +115,13 @@ const logout = async (req, res) => {
 
 const getMe = async (req, res) => {
   const [rows] = await User.sequelize.query(
-    'SELECT id, uuid, name, email, role, phone FROM users WHERE id = ? AND isDeleted = 0 LIMIT 1',
+    'SELECT id, uuid, name, email, role FROM users WHERE id = ? AND isDeleted = 0 LIMIT 1',
     { replacements: [req.user.id] }
   );
   const user = rows[0];
+  if (user) {
+    user.phone = null; // Provide fallback to avoid breaking frontend expectations
+  }
   return success(res, user);
 };
 
