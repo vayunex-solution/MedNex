@@ -241,6 +241,7 @@ const PurchaseEntry: React.FC = () => {
                         <TableCell>{idx + 1}</TableCell>
                         <TableCell>
                           <Autocomplete options={medicines} getOptionLabel={(o) => o.name} size="small" sx={{ minWidth: 180 }}
+                            value={medicines.find((m) => m.id === row.medicineId) || (row.medicineId ? { id: row.medicineId, name: row.medicineName } : null) as any}
                             onInputChange={(_, v) => setMedSearch(v)} onChange={(_, v) => setMedForRow(idx, v)}
                             renderInput={(params) => <TextField {...params} placeholder="Search" />} />
                         </TableCell>
