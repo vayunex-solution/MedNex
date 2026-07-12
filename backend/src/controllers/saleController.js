@@ -108,7 +108,7 @@ const update = async (req, res) => {
 
     const invoice = await SaleInvoice.findOne({
       where: { id, isDeleted: false },
-      include: [{ model: SaleItem, as: 'items' }],
+      include: [{ model: SaleItem, as: 'items', include: [{ model: Medicine, as: 'medicine', attributes: ['name'] }] }],
       transaction: t,
     });
     if (!invoice) {
@@ -175,8 +175,38 @@ const update = async (req, res) => {
       }
     }
 
+    // Build Audit Log Details
+    const auditDetails = [];
+    auditDetails.push(`Invoice: ${invoice.invoiceNo}`);
+    auditDetails.push(`Date: ${invoice.invoiceDate} -> ${invoiceData.invoiceDate || invoice.invoiceDate}`);
+    auditDetails.push(`Payment Mode: ${invoice.paymentMode} -> ${invoiceData.paymentMode || invoice.paymentMode}`);
+    auditDetails.push(`Subtotal: ₹${invoice.subtotal.toFixed(2)} -> ₹${subtotal.toFixed(2)}`);
+    auditDetails.push(`Discount: ₹${invoice.discountAmount.toFixed(2)} -> ₹${discountAmount.toFixed(2)}`);
+    auditDetails.push(`Tax Amount: ₹${invoice.taxAmount.toFixed(2)} -> ₹${taxAmount.toFixed(2)}`);
+    auditDetails.push(`Grand Total: ₹${oldGrandTotal.toFixed(2)} -> ₹${grandTotal.toFixed(2)}`);
+
+    auditDetails.push('\n[Item Changes]');
+    for (const oldItem of invoice.items) {
+      const newItem = (items || []).find(it => it.medicineId === oldItem.medicineId && it.batchNo === oldItem.batchNo);
+      if (!newItem) {
+        auditDetails.push(`- Removed: ${oldItem.medicine?.name || 'Item'} (Batch: ${oldItem.batchNo}) | Qty: ${oldItem.qty}`);
+      } else {
+        const qtyDiff = Number(newItem.qty) - Number(oldItem.qty);
+        const rateDiff = Number(newItem.rate) - Number(oldItem.rate);
+        if (qtyDiff !== 0 || rateDiff !== 0) {
+          auditDetails.push(`* Modified: ${oldItem.medicine?.name || 'Item'} (Batch: ${oldItem.batchNo}) | Qty: ${oldItem.qty} -> ${newItem.qty} | Rate: ₹${oldItem.rate} -> ₹${newItem.rate}`);
+        }
+      }
+    }
+    for (const newItem of (items || [])) {
+      const oldItem = invoice.items.find(it => it.medicineId === newItem.medicineId && it.batchNo === newItem.batchNo);
+      if (!oldItem) {
+        auditDetails.push(`+ Added: ${newItem.medicineName || 'Item'} (Batch: ${newItem.batchNo}) | Qty: ${newItem.qty} | Rate: ₹${newItem.rate}`);
+      }
+    }
+
     const { logAudit } = require('../helpers/auditLogger');
-    await logAudit(req, 'UPDATE', 'Sales', `Updated sale bill ${invoice.invoiceNo}: grandTotal changed from ₹${oldGrandTotal} to ₹${grandTotal.toFixed(2)}`);
+    await logAudit(req, 'UPDATE', 'Sales', auditDetails.join('\n'));
 
     await t.commit();
 
