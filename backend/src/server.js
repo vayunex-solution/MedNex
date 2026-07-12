@@ -14,20 +14,16 @@ const seedAdmin = async () => {
   const admin = users[0];
   
   if (admin) {
-    if (admin.email !== 'admin@mednex.com') {
-      await sequelize.query('UPDATE users SET email = "admin@mednex.com" WHERE id = ?', {
-        replacements: [admin.id]
-      });
-      logger.info('Admin email updated to admin@mednex.com');
-    }
+    // Super admin already exists - do NOT override their email or password
+    logger.info(`Super admin exists: ${admin.email}`);
   } else {
-    const hash = await bcrypt.hash('admin@123', 12);
-    // Insert with UUID and timestamps
+    // No super admin found - create default one
+    const hash = await bcrypt.hash('yash00725', 12);
     await sequelize.query(
-      'INSERT INTO users (id, name, email, password, role, isActive, uuid, createdAt, updatedAt) VALUES (1, "Super Admin", "admin@mednex.com", ?, "super_admin", 1, UUID(), NOW(), NOW())',
+      'INSERT INTO users (name, email, password, role, status, isDeleted, uuid, createdAt, updatedAt) VALUES ("Super Admin", "yashyr0725@gmail.com", ?, "super_admin", "active", 0, UUID(), NOW(), NOW())',
       { replacements: [hash] }
     );
-    logger.info('Default admin user created with ID 1: admin@mednex.com / admin@123');
+    logger.info('Default super admin created: yashyr0725@gmail.com');
   }
 
   const [companies] = await sequelize.query('SELECT * FROM companies LIMIT 1');
