@@ -106,3 +106,25 @@ export const companyService = {
   get: () => api.get('/company'),
   update: (data: unknown) => api.put('/company', data),
 };
+
+// ─── Platform Management (Super Admin Control Panel) ───────────────────────────
+export const platformTenantService = {
+  getAll: (params?: Record<string, unknown>) => api.get('/platform/tenants', { params }).then(r => ({ data: r.data.data, total: r.data.pagination?.total || 0 })),
+  getById: (uuid: string) => api.get(`/platform/tenants/${uuid}`).then(r => r.data.data),
+  create: (data: unknown) => api.post('/platform/tenants', data),
+  update: (uuid: string, data: unknown) => api.put(`/platform/tenants/${uuid}`, data),
+  activate: (uuid: string) => api.post(`/platform/tenants/${uuid}/activate`),
+  suspend: (uuid: string) => api.post(`/platform/tenants/${uuid}/suspend`),
+  archive: (uuid: string) => api.post(`/platform/tenants/${uuid}/archive`),
+};
+
+export const platformUserService = {
+  getAll: (params?: Record<string, unknown>) => api.get('/platform/users', { params }).then(r => r.data),
+  getById: (uuid: string) => api.get(`/platform/users/${uuid}`).then(r => r.data.data),
+  create: (data: unknown) => api.post('/platform/users', data),
+  update: (uuid: string, data: unknown) => api.put(`/platform/users/${uuid}`, data),
+  remove: (uuid: string) => api.delete(`/platform/users/${uuid}`),
+  activate: (uuid: string) => api.post(`/platform/users/${uuid}/activate`),
+  suspend: (uuid: string) => api.post(`/platform/users/${uuid}/suspend`),
+  resetPassword: (uuid: string, data: unknown) => api.post(`/platform/users/${uuid}/reset-password`, data),
+};

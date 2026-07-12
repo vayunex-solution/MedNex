@@ -19,6 +19,7 @@ import Customers from './pages/masters/Customers';
 import Suppliers from './pages/masters/Suppliers';
 import Medicines from './pages/masters/Medicines';
 import Users from './pages/masters/Users';
+import Tenants from './pages/masters/Tenants';
 import { Doctors, MedicineCategories, MedicineCompanies, HsnCodes, GstSlabs, Units, Racks, States, Cities } from './pages/masters/SimpleMasters';
 import PurchaseEntry from './pages/purchase/PurchaseEntry';
 import SalesBilling from './pages/sales/SalesBilling';
@@ -67,6 +68,7 @@ const AppContent: React.FC = () => {
               <Route path="masters/states" element={<States />} />
               <Route path="masters/cities" element={<Cities />} />
               <Route path="masters/users" element={<ProtectedRoute roles={['super_admin', 'admin']}><Users /></ProtectedRoute>} />
+              <Route path="masters/tenants" element={<ProtectedRoute roles={['super_admin']}><Tenants /></ProtectedRoute>} />
               {/* Transactions */}
               <Route path="purchase" element={<PurchaseEntry />} />
               <Route path="sales" element={<SalesBilling />} />

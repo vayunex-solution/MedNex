@@ -97,6 +97,25 @@ const AppLayout: React.FC = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>(['Masters']);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
+  // Dynamically filter navItems to include Tenants management for super_admin
+  const filteredNavItems = React.useMemo(() => {
+    return navItems.map(item => {
+      if (item.label === 'Masters') {
+        const filteredChildren = [...(item.children || [])];
+        if (user?.role === 'super_admin' && !filteredChildren.some(c => c.label === 'Platform Tenants')) {
+          // Insert "Platform Tenants" link
+          filteredChildren.push({
+            label: 'Platform Tenants',
+            icon: <Store />,
+            path: '/masters/tenants'
+          });
+        }
+        return { ...item, children: filteredChildren };
+      }
+      return item;
+    });
+  }, [user]);
+
   const drawerWidth = collapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
 
   const toggleExpand = (label: string) => {
@@ -201,7 +220,7 @@ const AppLayout: React.FC = () => {
       {/* Nav items */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.2)', borderRadius: 2 } }}>
         <List dense disablePadding>
-          {navItems.map((item) => renderNavItem(item))}
+          {filteredNavItems.map((item) => renderNavItem(item))}
         </List>
       </Box>
 

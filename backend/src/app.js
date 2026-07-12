@@ -65,6 +65,7 @@ app.use('/api/v2', v2Routes);
 app.use('/api/auth', authRoutes);
 app.use('/api', masterRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/platform', require('./routes/platform'));
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));

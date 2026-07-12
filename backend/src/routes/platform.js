@@ -17,6 +17,12 @@ const userValidator = require('../platform/user/userValidator');
 const idempotencyMiddleware = require('../middleware/idempotency');
 const upload = require('../middleware/upload');
 
+const { authenticate, authorize } = require('../middleware/auth');
+
+// Apply super_admin restrictions globally to all platform management routes
+router.use(authenticate);
+router.use(authorize('super_admin'));
+
 // ─── Capabilities Contract ────────────────────────────────────────────────────
 router.get('/capabilities', capabilitiesCtrl.getCapabilities);
 

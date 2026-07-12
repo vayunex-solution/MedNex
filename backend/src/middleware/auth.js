@@ -35,62 +35,8 @@ const authenticate = async (req, res, next) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'nex_jwt_secret_default_key_9988');
     } catch (localErr) {
-      try {
-        const introspectResponse = await fetch('https://api.sdk.vayunexsolution.com/api/v1/auth/introspect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-          signal: AbortSignal.timeout(5000)
-        });
-        if (introspectResponse.ok) {
-          const introspectResult = await introspectResponse.json();
-          if (introspectResult.active) {
-            // NPC tenantId is from NPC DB — resolve local MedNex tenantId via email
-            const { localUserId, membership } = await resolveLocalMembership(
-              introspectResult.user.email,
-              introspectResult.user.id
-            );
-
-            // Also check local user status — NPC suspension must reflect in MedNex
-            try {
-              const [statusRows] = await User.sequelize.query(
-                'SELECT status FROM users WHERE id = ? AND isDeleted = 0 LIMIT 1',
-                { replacements: [localUserId] }
-              );
-              if (statusRows.length > 0 && statusRows[0].status && statusRows[0].status !== 'active') {
-                return unauthorized(res, 'User account is suspended or inactive');
-              }
-            } catch (statusErr) { /* ignore, proceed */ }
-
-            const localTenantId = membership ? membership.tenantId : null;
-            const localBusinessId = membership ? membership.businessId : null;
-            const localBranchId = membership ? membership.branchId : null;
-
-            req.user = {
-              id: localUserId,
-              email: introspectResult.user.email,
-              role: introspectResult.user.role,
-              tenantId: localTenantId,
-              businessId: localBusinessId,
-              branchId: localBranchId,
-            };
-
-            const RequestContext = require('../shared/core/context');
-            RequestContext.userId = localUserId;
-            RequestContext.tenantId = localTenantId;
-            RequestContext.branchId = localBranchId;
-            RequestContext.businessId = localBusinessId;
-            RequestContext.permissions = [introspectResult.user.role];
-            RequestContext.features = ['billing', 'inventory'];
-
-            return next();
-          }
-
-        }
-      } catch (npcErr) {
-        // Fallback failed
-      }
-      throw localErr;
+      if (localErr.name === 'TokenExpiredError') return unauthorized(res, 'Token expired');
+      return unauthorized(res, 'Invalid token');
     }
     
     // Check if it is a V1 Token (contains sessionId)
