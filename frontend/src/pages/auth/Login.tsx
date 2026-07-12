@@ -39,10 +39,15 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: yupResolver(schema),
-    defaultValues: { email: 'admin@mednex.com', password: 'Admin@123', rememberMe: false },
+    defaultValues: { email: 'demo@mednex.com', password: 'Demo@123', rememberMe: false },
   });
+
+  const fillDemo = () => {
+    setValue('email', 'demo@mednex.com');
+    setValue('password', 'Demo@123');
+  };
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -324,8 +329,30 @@ const Login: React.FC = () => {
           </Button>
         </Box>
 
-
-
+        {/* Demo Credentials */}
+        <Box
+          onClick={fillDemo}
+          sx={{
+            mt: 3, p: 2, borderRadius: 2.5, cursor: 'pointer',
+            bgcolor: '#F0F9FF', border: '1.5px solid #BAE6FD',
+            transition: 'all 0.2s',
+            '&:hover': { bgcolor: '#E0F2FE', borderColor: '#38BDF8', transform: 'translateY(-1px)' },
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <CheckCircle sx={{ fontSize: 15, color: '#0284C7' }} />
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: 0.5 }}>Demo Account</Typography>
+            </Box>
+            <Typography sx={{ fontSize: '0.68rem', color: '#38BDF8', fontWeight: 600 }}>Click to fill →</Typography>
+          </Box>
+          <Typography sx={{ fontSize: '0.78rem', color: '#0369A1' }}>
+            <strong>Email:</strong> demo@mednex.com
+          </Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: '#0369A1' }}>
+            <strong>Password:</strong> Demo@123
+          </Typography>
+        </Box>
 
         {/* Powered by */}
         <Box sx={{ mt: 4, textAlign: 'center' }}>
