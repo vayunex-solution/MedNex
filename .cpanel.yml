@@ -6,6 +6,7 @@ deployment:
     - /bin/cp -Rf frontend/dist/. /home/vayunexs/mednex.vayunexsolution.com/
     - /bin/bash -c "cd /home/vayunexs/api.mednex.vayunexsolution.com && npm install --omit=dev --prefer-offline 2>&1 | tail -5"
     - /bin/mkdir -p /home/vayunexs/api.mednex.vayunexsolution.com/tmp
+    - /bin/bash -c "printf '# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN\nPassengerAppRoot \"/home/vayunexs/api.mednex.vayunexsolution.com\"\nPassengerBaseURI \"/\"\nPassengerNodejs \"/home/vayunexs/nodevenv/api.mednex.vayunexsolution.com/24/bin/node\"\nPassengerAppType node\nPassengerStartupFile src/server.js\n# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END\n# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN\n<IfModule Litespeed>\n</IfModule>\n# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END\n' > /home/vayunexs/api.mednex.vayunexsolution.com/.htaccess"
     - /bin/touch /home/vayunexs/api.mednex.vayunexsolution.com/tmp/restart.txt
 
     # 2. Nex Platform Core (NPC) Deployment
