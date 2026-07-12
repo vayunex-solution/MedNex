@@ -324,22 +324,8 @@ const Login: React.FC = () => {
           </Button>
         </Box>
 
-        {/* Default credentials hint */}
-        <Box sx={{
-          mt: 3.5, p: 2.5, borderRadius: 3,
-          bgcolor: '#EFF6FF', border: '1px solid #BFDBFE',
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <CheckCircle sx={{ fontSize: 16, color: '#1565C0' }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#1565C0' }}>Demo Credentials</Typography>
-          </Box>
-          <Typography sx={{ fontSize: '0.8rem', color: '#1E40AF' }}>
-            <strong>Email:</strong> admin@mednex.com
-          </Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: '#1E40AF' }}>
-            <strong>Password:</strong> Admin@123
-          </Typography>
-        </Box>
+
+
 
         {/* Powered by */}
         <Box sx={{ mt: 4, textAlign: 'center' }}>
