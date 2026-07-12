@@ -16,6 +16,8 @@ const authRoutes = require('./routes/authRoutes');
 const masterRoutes = require('./routes/masterRoutes');
 const apiRoutes = require('./routes/index');
 
+const app = express();
+
 // ─── CORS (Nuclear mode - manual headers, no package dependency) ──────────────
 // Must be FIRST middleware before anything else
 app.use((req, res, next) => {
