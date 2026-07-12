@@ -57,7 +57,7 @@ const MedicineForm: React.FC<{ open: boolean; onClose: () => void; editData?: un
     mutationFn: (data: FormData) => medicine ? medicineService.update(medicine.id, data) : medicineService.create(data),
     onSuccess: () => { enqueueSnackbar(medicine ? 'Updated!' : 'Created!', { variant: 'success' }); queryClient.invalidateQueries({ queryKey: ['medicines'] }); onClose(); },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Error saving medicine';
+      const msg = err.response?.data?.errors?.[0]?.message || err.response?.data?.message || 'Error saving medicine';
       enqueueSnackbar(msg, { variant: 'error' });
     },
   });

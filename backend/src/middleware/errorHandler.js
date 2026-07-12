@@ -14,7 +14,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
     errors = err.errors.map((e) => ({ field: e.path, message: e.message }));
     statusCode = 422;
-    message = 'Validation error';
+    message = err.errors.map((e) => e.message).join(', ') || 'Validation error';
     errorCode = 'VALIDATION_ERROR';
   } else if (err.name === 'SequelizeForeignKeyConstraintError') {
     statusCode = 400;

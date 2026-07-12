@@ -33,7 +33,7 @@ const SimpleForm: React.FC<SimpleFormProps> = ({ open, onClose, editData, title,
     mutationFn: (data: unknown) => record ? service.update(record.id as number, data) : service.create(data),
     onSuccess: () => { enqueueSnackbar(record ? 'Updated successfully!' : 'Created successfully!', { variant: 'success' }); queryClient.invalidateQueries({ queryKey: [queryKey] }); onClose(); },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Error saving record';
+      const msg = err.response?.data?.errors?.[0]?.message || err.response?.data?.message || 'Error saving record';
       enqueueSnackbar(msg, { variant: 'error' });
     },
   });
